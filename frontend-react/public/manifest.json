@@ -1,0 +1,17 @@
+{
+  "name": "AGD Data Plus",
+  "short_name": "AGD Data",
+  "description": "Premium, high-end VTU and digital payment platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0A0F1E",
+  "theme_color": "#0A0F1E",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png"
+    }
+  ]
+}

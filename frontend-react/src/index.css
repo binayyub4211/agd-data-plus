@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
+   AGD DATA PLUS — GLOBAL DESIGN SYSTEM
+   ============================================ */
+
+:root {
+  --color-midnight: #0A0F1E;
+  --color-royal: #1A4FDB;
+  --color-cyan: #00D4FF;
+  --color-silver: #E0E0E0;
+  --color-gold: #F5A623;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: "Inter", system-ui, sans-serif;
+  background-color: var(--color-midnight);
+  color: var(--color-silver);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Premium Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0A0F1E;
+}
+::-webkit-scrollbar-thumb {
+  background: #1A4FDB44;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #00D4FF66;
+}
+
+/* Shimmer gradient utility */
+.shimmer-text {
+  background: linear-gradient(
+    90deg,
+    #E0E0E0 0%,
+    #00D4FF 30%,
+    #F5A623 50%,
+    #00D4FF 70%,
+    #E0E0E0 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 4s linear infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Glass card */
+.glass {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+/* Page transition wrapper */
+.page-enter {
+  opacity: 0;
+  transform: translateY(16px);
+}
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: all 0.4s ease;
+}

@@ -1,0 +1,169 @@
+import { Request, Response } from 'express';
+import { VtuEngine } from '../services/VtuEngine';
+import { prisma } from '../utils/prisma';
+import { ServiceType, TransactionStatus, Provider } from '../types/prisma';
+import { z } from 'zod';
+// @ts-ignore
+import { v4 as uuidv4 } from 'uuid';
+
+const vtuEngine = new VtuEngine();
+
+const purchaseSchema = z.object({
+  serviceType: z.nativeEnum(ServiceType),
+  phone: z.string().min(11),
+  planCode: z.string(),
+  amount: z.number().positive(),
+});
+
+export const purchaseService = async (req: Request, res: Response) => {
+  try {
+    const validated = purchaseSchema.parse(req.body);
+    // @ts-ignore
+    const userId = req.user.id;
+
+    // Atomic Balance Check and Debit
+    const result = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        include: { wallet: true },
+      });
+
+      if (!user || !user.wallet) throw new Error('User or Wallet not found');
+      
+      if (user.wallet.balance < validated.amount) {
+        throw new Error('Insufficient wallet balance');
+      }
+
+      // Create PENDING transaction
+      const reference = `AGD-${uuidv4().slice(0, 8).toUpperCase()}`;
+      const transaction = await tx.transaction.create({
+        data: {
+          userId,
+          walletId: user.wallet.id,
+          amount: validated.amount,
+          serviceType: validated.serviceType,
+          status: TransactionStatus.PENDING,
+          provider: Provider.CHEAP_DATA_HUB, // Initial provider
+          reference,
+          description: `${validated.serviceType} purchase for ${validated.phone}`,
+        },
+      });
+
+      // Debit Wallet
+      const updatedWallet = await tx.wallet.update({
+        where: { id: user.wallet.id },
+        data: { balance: { decrement: validated.amount } },
+      });
+
+      // Log Audit
+      await tx.auditLog.create({
+        data: {
+          userId,
+          action: 'DEBIT',
+          amount: validated.amount,
+          previousBalance: user.wallet.balance,
+          newBalance: updatedWallet.balance,
+          description: `Debit for ${validated.serviceType} purchase. Ref: ${reference}`,
+        },
+      });
+
+      return { transaction, user };
+    });
+
+    // Outside transaction, trigger the VTU Engine (external API calls)
+    try {
+      const engineResponse = await vtuEngine.processTransaction({
+        ...validated,
+        reference: result.transaction.reference,
+      });
+
+      // Update transaction status to SUCCESS
+      await prisma.transaction.update({
+        where: { id: result.transaction.id },
+        data: { 
+          status: TransactionStatus.SUCCESS,
+          provider: engineResponse.providerUsed as Provider 
+        },
+      });
+
+      const finalTransaction = await prisma.transaction.findUnique({
+        where: { id: result.transaction.id }
+      });
+
+      // Create Notification
+      await prisma.notification.create({
+        data: {
+          userId,
+          title: 'Transaction Successful',
+          message: `Your ${validated.serviceType} purchase for ${validated.phone} (₦${validated.amount}) was successful.`,
+          type: 'SUCCESS'
+        }
+      });
+
+      res.json({
+        success: true,
+        message: 'Transaction successful',
+        transaction: finalTransaction,
+        provider: engineResponse.providerUsed,
+      });
+
+    } catch (engineError: any) {
+      // If Engine fails, we should REFUND the user
+      console.error('VTU Engine Error, initiating refund:', engineError.message);
+      
+      await prisma.$transaction(async (tx) => {
+        await tx.transaction.update({
+          where: { id: result.transaction.id },
+          data: { status: TransactionStatus.FAILED },
+        });
+
+        const currentWallet = await tx.wallet.findUnique({ where: { userId } });
+        if (!currentWallet) return;
+
+        const refundedWallet = await tx.wallet.update({
+          where: { id: currentWallet.id },
+          data: { balance: { increment: validated.amount } },
+        });
+
+        await tx.auditLog.create({
+          data: {
+            userId,
+            action: 'CREDIT',
+            amount: validated.amount,
+            previousBalance: currentWallet.balance,
+            newBalance: refundedWallet.balance,
+            description: `Refund for failed ${validated.serviceType} purchase. Ref: ${result.transaction.reference}`,
+          },
+        });
+      });
+
+      res.status(500).json({ 
+        error: 'Service provider error. Your wallet has been refunded.',
+        reference: result.transaction.reference 
+      });
+    }
+
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors });
+    }
+    res.status(400).json({ error: error.message });
+  }
+};
+
+export const getUserTransactions = async (req: Request, res: Response) => {
+  try {
+    // @ts-ignore
+    const userId = req.user.id;
+
+    const transactions = await prisma.transaction.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: 50, // Last 50 transactions
+    });
+
+    res.json(transactions);
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to fetch transactions' });
+  }
+};

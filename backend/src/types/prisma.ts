@@ -1,0 +1,29 @@
+export enum Role {
+  USER = 'USER',
+  RESELLER = 'RESELLER',
+  ADMIN = 'ADMIN'
+}
+
+export enum TransactionStatus {
+  PENDING = 'PENDING',
+  SUCCESS = 'SUCCESS',
+  FAILED = 'FAILED',
+  REFUNDED = 'REFUNDED'
+}
+
+export enum ServiceType {
+  DATA = 'DATA',
+  AIRTIME = 'AIRTIME',
+  ELECTRICITY = 'ELECTRICITY',
+  CABLE = 'CABLE',
+  EXAM_PIN = 'EXAM_PIN',
+  BULK_SMS = 'BULK_SMS',
+  WALLET_TOPUP = 'WALLET_TOPUP'
+}
+
+export enum Provider {
+  CHEAP_DATA_HUB = 'CHEAP_DATA_HUB',
+  VTPASS = 'VTPASS',
+  PAYSTACK = 'PAYSTACK',
+  PAYMENTPOINT = 'PAYMENTPOINT'
+}
