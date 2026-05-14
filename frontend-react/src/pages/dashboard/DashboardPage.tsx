@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import axios from 'axios'
+import api from '@/lib/api'
 import toast from 'react-hot-toast'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -46,16 +46,11 @@ export function DashboardPage() {
 
   const fetchProfile = async (silent = false) => {
     try {
-      const token = localStorage.getItem('token')
-      const res = await axios.get('/api/auth/me', {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      const res = await api.get('/auth/me')
       setUser(res.data)
       
       // Also fetch transactions
-      const txRes = await axios.get('/api/vtu/transactions', {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      const txRes = await api.get('/vtu/transactions')
       setTransactions(txRes.data)
       
     } catch {

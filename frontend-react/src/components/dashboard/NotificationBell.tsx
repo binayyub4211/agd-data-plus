@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import axios from 'axios'
+import api from '@/lib/api'
 import { Bell, X, CheckCircle2, Info, AlertCircle, Trash2, Check } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 
@@ -12,9 +12,7 @@ export function NotificationBell() {
   const fetchNotifications = async () => {
     try {
       const token = localStorage.getItem('token')
-      const res = await axios.get('/api/notifications', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const res = await api.get('/notifications')
       setNotifications(res.data.notifications)
       setUnreadCount(res.data.unreadCount)
     } catch (err) {
@@ -31,9 +29,7 @@ export function NotificationBell() {
   const markAllAsRead = async () => {
     try {
       const token = localStorage.getItem('token')
-      await axios.patch('/api/notifications/read-all', {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      await api.patch('/notifications/read-all', {})
       fetchNotifications()
     } catch (err) {
       console.error('Failed to mark all as read')
@@ -43,9 +39,7 @@ export function NotificationBell() {
   const markAsRead = async (id: string) => {
     try {
       const token = localStorage.getItem('token')
-      await axios.patch(`/api/notifications/${id}/read`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      await api.patch(`/notifications/${id}/read`, {})
       fetchNotifications()
     } catch (err) {
       console.error('Failed to mark as read')
@@ -55,9 +49,7 @@ export function NotificationBell() {
   const deleteNotif = async (id: string) => {
     try {
       const token = localStorage.getItem('token')
-      await axios.delete(`/api/notifications/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      await api.delete(`/notifications/${id}`)
       fetchNotifications()
     } catch (err) {
       console.error('Failed to delete notification')

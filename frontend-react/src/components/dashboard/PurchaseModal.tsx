@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import axios from 'axios'
+import api from '@/lib/api'
 import toast from 'react-hot-toast'
 import { X, Wifi, Smartphone, Zap, Monitor, ShieldCheck, ArrowRight, Check } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
@@ -94,15 +94,14 @@ export function PurchaseModal({ isOpen, onClose, serviceType, refreshProfile }: 
     
     try {
       const token = localStorage.getItem('token')
-      const response = await axios.post(
-        '/api/vtu/purchase',
+      const response = await api.post(
+        '/vtu/purchase',
         {
           serviceType,
           phone: form.phone,
           planCode: form.planCode || 'default',
           amount: Number(form.amount),
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
+        }
       )
       toast.success(`${meta.label} purchase successful!`)
       refreshProfile()

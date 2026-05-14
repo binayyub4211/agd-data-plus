@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import axios from 'axios'
+import api from '@/lib/api'
 import toast from 'react-hot-toast'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -24,8 +24,8 @@ export function AdminPage() {
     try {
       const token = localStorage.getItem('token')
       const [statsRes, usersRes] = await Promise.all([
-        axios.get('/api/admin/stats', { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get('/api/admin/users', { headers: { Authorization: `Bearer ${token}` } })
+        api.get('/admin/stats'),
+        api.get('/admin/users')
       ])
       setStats(statsRes.data)
       setUsers(usersRes.data)
@@ -48,7 +48,7 @@ export function AdminPage() {
     
     try {
       const token = localStorage.getItem('token')
-      await axios.post('/api/admin/users/credit', {
+      await api.post('/admin/users/credit', {
         userId: creditModal.userId,
         amount: Number(creditAmount),
         description: 'Manual credit by Admin'

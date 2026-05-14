@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import axios from 'axios'
+import api from '@/lib/api'
 import toast from 'react-hot-toast'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -16,8 +16,8 @@ export function ReferralsPage() {
     try {
       const token = localStorage.getItem('token')
       const [userRes, refRes] = await Promise.all([
-        axios.get('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get('/api/auth/referrals', { headers: { Authorization: `Bearer ${token}` } })
+        api.get('/auth/me'),
+        api.get('/auth/referrals')
       ])
       setUser(userRes.data)
       setReferrals(refRes.data)

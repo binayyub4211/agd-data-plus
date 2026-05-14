@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import axios from 'axios'
+import api from '@/lib/api'
 import toast from 'react-hot-toast'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -28,7 +28,7 @@ export function BulkSmsPage() {
     setLoading(true)
     try {
       const token = localStorage.getItem('token')
-      await axios.post('/api/vtu/sms/send', {
+      await api.post('/vtu/sms/send', {
         sender: senderId,
         recipients: recipientList,
         message: message
