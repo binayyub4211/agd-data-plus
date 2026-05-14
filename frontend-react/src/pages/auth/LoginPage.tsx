@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import axios from 'axios'
+import api from '@/lib/api'
 import toast from 'react-hot-toast'
 import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
@@ -21,7 +21,7 @@ export function LoginPage() {
     e.preventDefault()
     setLoading(true)
     try {
-      const res = await axios.post('/api/auth/login', formData)
+      const res = await api.post('/auth/login', formData)
       localStorage.setItem('token', res.data.token)
       localStorage.setItem('refreshToken', res.data.refreshToken)
       localStorage.setItem('user', JSON.stringify(res.data.user))
