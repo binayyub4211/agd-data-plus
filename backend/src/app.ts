@@ -11,6 +11,9 @@ import { paystackWebhook } from './controllers/webhook.controller';
 
 const app = express();
 
+// Trust Railway proxy
+app.set('trust proxy', 1);
+
 app.post('/api/webhooks/paystack', express.json(), paystackWebhook);
 app.post('/api/webhooks/paymentpoint', express.json(), paystackWebhook);
 
