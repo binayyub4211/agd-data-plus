@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../utils/prisma';
 import { Provider } from '../types/prisma';
+import { PaymentPointService } from '../services/PaymentPointService';
 
 export const getAdminStats = async (req: Request, res: Response) => {
   try {
@@ -99,5 +100,62 @@ export const manualCreditUser = async (req: Request, res: Response) => {
     res.json({ message: 'User credited successfully', newBalance: result.balance });
   } catch (error: any) {
     res.status(400).json({ error: error.message });
+  }
+};
+
+export const generateMissingAccounts = async (req: Request, res: Response) => {
+  try {
+    // 1. Find users with no virtual account number
+    const usersWithoutAccount = await prisma.user.findMany({
+      where: {
+        virtualAccountNumber: null,
+        role: 'USER' // Only for regular users
+      }
+    });
+
+    if (usersWithoutAccount.length === 0) {
+      return res.json({ message: 'All users already have virtual accounts.' });
+    }
+
+    let successCount = 0;
+    let failCount = 0;
+
+    // 2. Loop through and create accounts
+    for (const user of usersWithoutAccount) {
+      try {
+        const virtualAccount = await PaymentPointService.createDedicatedAccount(
+          user.email,
+          user.name,
+          user.phone
+        );
+
+        if (virtualAccount) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              virtualAccountNumber: virtualAccount.accountNumber,
+              virtualAccountBank: virtualAccount.bankName,
+              virtualAccountName: virtualAccount.accountName,
+            }
+          });
+          successCount++;
+        } else {
+          failCount++;
+        }
+      } catch (err) {
+        failCount++;
+      }
+    }
+
+    res.json({
+      message: 'Account generation process completed',
+      details: {
+        totalFound: usersWithoutAccount.length,
+        successfullyCreated: successCount,
+        failed: failCount
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to initiate account generation' });
   }
 };

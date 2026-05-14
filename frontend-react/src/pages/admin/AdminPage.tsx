@@ -19,6 +19,7 @@ export function AdminPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [creditModal, setCreditModal] = useState<{ isOpen: boolean, userId: string, name: string }>({ isOpen: false, userId: '', name: '' })
   const [creditAmount, setCreditAmount] = useState('')
+  const [isRegenerating, setIsRegenerating] = useState(false)
 
   const fetchData = async () => {
     try {
@@ -63,6 +64,21 @@ export function AdminPage() {
     }
   }
 
+  const handleRegenerateAccounts = async () => {
+    if (!window.confirm('This will attempt to generate bank accounts for all users missing them. Continue?')) return
+    
+    setIsRegenerating(true)
+    try {
+      await api.post('/admin/accounts/regenerate')
+      toast.success('Account generation process started!')
+      fetchData()
+    } catch (err: any) {
+      toast.error(err.response?.data?.error ?? 'Process failed')
+    } finally {
+      setIsRegenerating(false)
+    }
+  }
+
   const filteredUsers = users.filter(u => 
     u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -89,6 +105,14 @@ export function AdminPage() {
           <div className="flex items-center gap-3">
             <Button size="sm" variant="outline" onClick={() => { setLoading(true); fetchData(); }} className="text-xs uppercase tracking-widest border-brand-royal/20">
               Refresh Data
+            </Button>
+            <Button 
+              size="sm" 
+              onClick={handleRegenerateAccounts} 
+              loading={isRegenerating}
+              className="text-xs uppercase tracking-widest bg-brand-gold hover:bg-brand-gold/80 text-brand-midnight font-black"
+            >
+              Regenerate Accounts
             </Button>
             <Button size="sm" variant="outline" onClick={() => navigate('/dashboard')} className="text-xs uppercase tracking-widest border-brand-royal/20">
               Exit Console
@@ -206,9 +230,8 @@ export function AdminPage() {
                 </Card>
               ))}
               <Card className="p-6 bg-red-500/5 border-red-500/10 flex flex-col items-center justify-center text-center">
-                <Database size={32} className="text-red-500/20 mb-3" />
-                <p className="text-xs font-bold text-red-500/40 uppercase tracking-widest">Local Ledger</p>
-                <p className="text-sm font-black text-white mt-1">SQLite Secured</p>
+                <p className="text-xs font-bold text-brand-cyan/40 uppercase tracking-widest">Global Ledger</p>
+                <p className="text-sm font-black text-white mt-1">PostgreSQL Cloud</p>
               </Card>
             </div>
           </div>
