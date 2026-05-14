@@ -50,15 +50,21 @@ export class PaymentPointService {
         }
       );
 
-      // Return the first bank account from the array
-      if (response.data?.status === 'success' && response.data.bankAccounts?.length > 0) {
-        return response.data.bankAccounts[0];
+      // Log the exact response for debugging
+      console.log('PaymentPoint Virtual Account Response:', response.data);
+
+      if (response.data?.status === 'success' || response.data?.status === true) {
+        const accounts = response.data.bankAccounts || response.data.accounts || response.data.data;
+        if (Array.isArray(accounts) && accounts.length > 0) return accounts[0];
+        if (accounts?.accountNumber || accounts?.account_number) return accounts;
+        if (response.data.accountNumber || response.data.account_number) return response.data;
       }
       
-      return null;
+      throw new Error(response.data?.message || 'Invalid response format from PaymentPoint');
     } catch (error: any) {
       console.error('PaymentPoint Virtual Account Error:', error.response?.data || error.message);
-      return null;
+      // Throw the exact error message from the provider so it reaches the frontend
+      throw new Error(error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to create virtual account');
     }
   }
 

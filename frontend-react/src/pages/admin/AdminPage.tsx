@@ -79,6 +79,17 @@ export function AdminPage() {
     }
   }
 
+  const handleGenerateSingleAccount = async (userId: string) => {
+    try {
+      await api.post(`/admin/accounts/generate/${userId}`)
+      toast.success('Account generated successfully!')
+      fetchData()
+    } catch (err: any) {
+      // Will show the exact PaymentPoint error if it fails
+      toast.error(err.response?.data?.error ?? 'Failed to generate account')
+    }
+  }
+
   const filteredUsers = users.filter(u => 
     u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -187,12 +198,22 @@ export function AdminPage() {
                           <span className="text-sm font-black text-brand-silver/80">₦{(user.wallet?.balance ?? 0).toLocaleString()}</span>
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <button 
-                            onClick={() => setCreditModal({ isOpen: true, userId: user.id, name: user.name })}
-                            className="px-3 py-1.5 rounded-lg bg-brand-cyan/10 border border-brand-cyan/20 text-brand-cyan text-[10px] font-black uppercase tracking-widest hover:bg-brand-cyan hover:text-brand-midnight transition-all"
-                          >
-                            Modify
-                          </button>
+                          <div className="flex justify-end gap-2">
+                            {!user.virtualAccountNumber && (
+                              <button 
+                                onClick={() => handleGenerateSingleAccount(user.id)}
+                                className="px-3 py-1.5 rounded-lg bg-brand-gold/10 border border-brand-gold/20 text-brand-gold text-[10px] font-black uppercase tracking-widest hover:bg-brand-gold hover:text-brand-midnight transition-all"
+                              >
+                                Generate Acc
+                              </button>
+                            )}
+                            <button 
+                              onClick={() => setCreditModal({ isOpen: true, userId: user.id, name: user.name })}
+                              className="px-3 py-1.5 rounded-lg bg-brand-cyan/10 border border-brand-cyan/20 text-brand-cyan text-[10px] font-black uppercase tracking-widest hover:bg-brand-cyan hover:text-brand-midnight transition-all"
+                            >
+                              Modify
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))

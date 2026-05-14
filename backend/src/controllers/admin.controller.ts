@@ -59,6 +59,8 @@ export const getAllUsers = async (req: Request, res: Response) => {
         email: true,
         phone: true,
         role: true,
+        virtualAccountNumber: true,
+        virtualAccountBank: true,
         wallet: { select: { balance: true } },
         createdAt: true
       },
@@ -157,5 +159,46 @@ export const generateMissingAccounts = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     res.status(500).json({ error: 'Failed to initiate account generation' });
+  }
+};
+
+export const generateSingleAccount = async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.virtualAccountNumber) return res.status(400).json({ error: 'User already has a virtual account' });
+
+    try {
+      const virtualAccount = await PaymentPointService.createDedicatedAccount(
+        user.email,
+        user.name,
+        user.phone
+      );
+
+      if (virtualAccount) {
+        const accountNumber = virtualAccount.accountNumber || virtualAccount.account_number;
+        const bankName = virtualAccount.bankName || virtualAccount.bank_name;
+        const accountName = virtualAccount.accountName || virtualAccount.account_name;
+
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            virtualAccountNumber: accountNumber,
+            virtualAccountBank: bankName,
+            virtualAccountName: accountName,
+          }
+        });
+        return res.json({ message: 'Account generated successfully', bank: bankName, account: accountNumber });
+      } else {
+        return res.status(400).json({ error: 'Provider returned empty account data' });
+      }
+    } catch (apiError: any) {
+      // Return the exact provider error to the admin
+      return res.status(400).json({ error: apiError.message || 'Failed to generate account from provider' });
+    }
+  } catch (error: any) {
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
