@@ -12,7 +12,7 @@ const envSchema = z.object({
   JWT_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
-  REDIS_URL: z.string().min(1, 'REDIS_URL is required'),
+  REDIS_URL: z.string().optional(),
   PAYSTACK_SECRET_KEY: z.string().default('sk_test_placeholder'),
   PAYMENTPOINT_SECRET_KEY: z.string().default('placeholder'),
   PAYMENTPOINT_API_KEY: z.string().default('placeholder'),
