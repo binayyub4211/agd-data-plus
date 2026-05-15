@@ -1,11 +1,10 @@
 {
-  "routes": [
+  "buildCommand": "npm run build --prefix frontend-react",
+  "outputDirectory": "frontend-react/dist",
+  "rewrites": [
     {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/(.*)",
+      "destination": "/"
     }
   ]
 }
