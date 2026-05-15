@@ -32,6 +32,21 @@ export class PaymentPointService {
 
   static async createDedicatedAccount(email: string, name: string, phoneNumber: string) {
     try {
+      // Safely grab keys and guarantee no hidden spaces
+      const secretKey = config.PAYMENTPOINT_SECRET_KEY?.trim() || '';
+      const apiKey = config.PAYMENTPOINT_API_KEY?.trim() || '';
+      const businessId = config.PAYMENTPOINT_BUSINESS_ID?.trim() || '';
+
+      // DEBUG: Log the first 4 characters of the keys to prove Railway is actually sending them!
+      console.log('--- DEBUG: PAYMENTPOINT KEYS ---');
+      console.log(`Secret Key starts with: ${secretKey.substring(0, 4)}...`);
+      console.log(`API Key starts with: ${apiKey.substring(0, 4)}...`);
+      console.log(`Business ID starts with: ${businessId.substring(0, 4)}...`);
+      
+      if (secretKey === 'plac' || apiKey === 'plac') {
+         console.error('🚨 DANGER: Keys are stuck on "placeholder". Railway is not passing your variables!');
+      }
+
       const response = await axios.post(
         `${this.BASE_URL}/createVirtualAccount`,
         {
@@ -39,12 +54,12 @@ export class PaymentPointService {
           name,
           phoneNumber,
           bankCode: ['20946', '20897'], // PalmPay and Opay as per docs
-          businessId: config.PAYMENTPOINT_BUSINESS_ID,
+          businessId: businessId,
         },
         {
           headers: {
-            Authorization: `Bearer ${config.PAYMENTPOINT_SECRET_KEY}`,
-            'api-key': config.PAYMENTPOINT_API_KEY,
+            Authorization: `Bearer ${secretKey}`,
+            'api-key': apiKey,
             'Content-Type': 'application/json',
           },
         }
