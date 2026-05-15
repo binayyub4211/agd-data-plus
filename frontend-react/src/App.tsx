@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { HashRouter, Routes, Route } from 'react-router-dom'
 import { ClientLayout } from '@/components/layout/ClientLayout'
 import { HomePage } from '@/pages/HomePage'
 import { RegisterPage } from '@/pages/auth/RegisterPage'
@@ -11,7 +11,7 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <ClientLayout>
         <Routes>
           <Route path="/" element={<HomePage />} />
@@ -53,6 +53,6 @@ export default function App() {
           <Route path="*" element={<HomePage />} />
         </Routes>
       </ClientLayout>
-    </BrowserRouter>
+    </HashRouter>
   )
 }
