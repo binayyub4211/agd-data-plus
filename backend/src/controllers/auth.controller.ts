@@ -59,7 +59,7 @@ export const register = async (req: Request, res: Response) => {
         referrerId = referrer.id;
       }
     }
-
+    const passwordHash = await bcrypt.hash(validatedData.password, 12);
     console.log('Registering user:', validatedData.email);
 
     // 1. Create PaymentPoint Dedicated Account
@@ -125,7 +125,9 @@ export const register = async (req: Request, res: Response) => {
         email: result.user.email,
         role: result.user.role,
         referralCode: result.user.referralCode,
+        // @ts-ignore
         profilePicture: result.user.profilePicture,
+        // @ts-ignore
         theme: result.user.theme
       },
       token,
