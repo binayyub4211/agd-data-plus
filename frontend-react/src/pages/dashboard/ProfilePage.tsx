@@ -19,6 +19,7 @@ export function ProfilePage() {
     try {
       const res = await api.get('/auth/me')
       setUser(res.data)
+      localStorage.setItem('user', JSON.stringify(res.data))
     } catch {
       toast.error('Session expired')
       navigate('/auth/login')

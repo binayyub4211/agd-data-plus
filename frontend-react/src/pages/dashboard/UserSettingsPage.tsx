@@ -27,6 +27,7 @@ export function UserSettingsPage() {
     try {
       const res = await api.get('/auth/me')
       setUser(res.data)
+      localStorage.setItem('user', JSON.stringify(res.data)) // Sync with local storage for header/footer
       setSelectedTheme(res.data.theme || 'DARK')
       setProfilePic(res.data.profilePicture || '')
     } catch {
