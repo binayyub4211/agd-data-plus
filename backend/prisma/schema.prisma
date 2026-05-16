@@ -28,9 +28,15 @@ model User {
 
   // Paystack Integration
   paystackCustomerId String?
-  virtualAccountNumber String?
-  virtualAccountBank   String?
-  virtualAccountName   String?
+  psAccountNumber      String?
+  psBankName           String?
+  psAccountName        String?
+
+  // PaymentPoint Integration
+  ppAccountNumber      String?
+  ppBankName           String?
+  ppAccountName        String?
+
   referralCode         String?  @unique @default(uuid())
   referredBy           String?
 

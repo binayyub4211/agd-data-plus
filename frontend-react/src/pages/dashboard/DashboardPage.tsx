@@ -222,46 +222,50 @@ export function DashboardPage() {
             </Card>
           </motion.div>
 
-          {/* Virtual Account */}
+          {/* Virtual Accounts */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
             <Card className="p-7 border-dashed border-brand-royal/30 h-full flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-6">
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
                   <span className="px-3 py-1 bg-brand-cyan/10 text-brand-cyan text-[10px] font-black uppercase tracking-[0.2em] rounded-full border border-brand-cyan/20">
                     Auto-Funding
                   </span>
                   <Banknote size={18} className="text-brand-silver/20" />
                 </div>
-                <p className="text-brand-silver/40 text-[10px] font-black uppercase tracking-widest mb-3">
-                  Your Dedicated Account
-                </p>
-                {user?.virtualAccountNumber ? (
-                  <>
-                    <h3 className="text-3xl font-black text-white tracking-widest mb-1 font-display">
-                      {user.virtualAccountNumber}
-                    </h3>
-                    <p className="text-brand-cyan font-bold text-sm uppercase tracking-wider">
-                      {user.virtualAccountBank ?? 'Bank'}
-                    </p>
-                    <p className="text-brand-silver/40 text-xs mt-1">{user.virtualAccountName}</p>
-                    <button
-                      onClick={copyAccount}
-                      className="mt-5 flex items-center gap-2 text-xs text-brand-silver/30 hover:text-brand-cyan transition-colors group"
-                    >
-                      {accountCopied ? <Check size={13} className="text-green-500" /> : <Copy size={13} className="group-hover:scale-110 transition-transform" />}
-                      {accountCopied ? 'Copied!' : 'Copy Account Number'}
+
+                {/* Paystack Account */}
+                {user?.psAccountNumber && (
+                  <div className="p-4 rounded-2xl bg-brand-royal/10 border border-brand-royal/20">
+                    <p className="text-brand-silver/40 text-[8px] font-black uppercase tracking-widest mb-1">Method 1: Paystack (Fastest)</p>
+                    <h3 className="text-xl font-black text-white tracking-widest font-display">{user.psAccountNumber}</h3>
+                    <p className="text-brand-cyan font-bold text-[10px] uppercase tracking-wider">{user.psBankName}</p>
+                    <button onClick={() => { navigator.clipboard.writeText(user.psAccountNumber); toast.success('Paystack A/C Copied!'); }} className="mt-2 text-[10px] text-brand-silver/30 hover:text-brand-cyan flex items-center gap-1">
+                      <Copy size={10} /> Copy Account
                     </button>
-                  </>
-                ) : (
+                  </div>
+                )}
+
+                {/* PaymentPoint Account */}
+                {user?.ppAccountNumber && (
+                  <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                    <p className="text-brand-silver/40 text-[8px] font-black uppercase tracking-widest mb-1">Method 2: PaymentPoint</p>
+                    <h3 className="text-xl font-black text-white tracking-widest font-display">{user.ppAccountNumber}</h3>
+                    <p className="text-brand-cyan font-bold text-[10px] uppercase tracking-wider">{user.ppBankName}</p>
+                    <button onClick={() => { navigator.clipboard.writeText(user.ppAccountNumber); toast.success('PaymentPoint A/C Copied!'); }} className="mt-2 text-[10px] text-brand-silver/30 hover:text-brand-cyan flex items-center gap-1">
+                      <Copy size={10} /> Copy Account
+                    </button>
+                  </div>
+                )}
+
+                {(!user?.psAccountNumber && !user?.ppAccountNumber) && (
                   <div className="space-y-3 mt-3">
                     <div className="h-8 w-40 bg-brand-silver/5 rounded-xl animate-pulse" />
-                    <div className="h-4 w-24 bg-brand-silver/5 rounded-xl animate-pulse" />
-                    <p className="text-brand-silver/30 text-xs italic">Assigning your account...</p>
+                    <p className="text-brand-silver/30 text-xs italic">Assigning your accounts...</p>
                   </div>
                 )}
               </div>
-              <p className="text-[10px] text-brand-silver/20 mt-6 leading-relaxed">
-                Transfer directly to this account to fund your wallet instantly and automatically.
+              <p className="text-[9px] text-brand-silver/20 mt-6 leading-relaxed">
+                Transfer to either account for instant funding.
               </p>
             </Card>
           </motion.div>
@@ -362,10 +366,15 @@ export function DashboardPage() {
       <FundingModal
         isOpen={isFundingOpen}
         onClose={() => setIsFundingOpen(false)}
-        virtualAccount={{
-          accountNumber: user?.virtualAccountNumber,
-          bankName: user?.virtualAccountBank,
-          accountName: user?.virtualAccountName
+        ppAccount={{
+          accountNumber: user?.ppAccountNumber,
+          bankName: user?.ppBankName,
+          accountName: user?.ppAccountName
+        }}
+        psAccount={{
+          accountNumber: user?.psAccountNumber,
+          bankName: user?.psBankName,
+          accountName: user?.psAccountName
         }}
       />
 

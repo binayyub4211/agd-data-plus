@@ -63,20 +63,38 @@ export const register = async (req: Request, res: Response) => {
     console.log('Registering user:', validatedData.email);
 
     // 1. Create PaymentPoint Dedicated Account
-    let virtualAccount = null;
+    let ppAccount = null;
     try {
-      virtualAccount = await PaymentPointService.createDedicatedAccount(
+      ppAccount = await PaymentPointService.createDedicatedAccount(
         validatedData.email,
         validatedData.name,
         validatedData.phone
       );
     } catch (e) {
       console.warn('PaymentPoint Account Generation Failed:', e);
-      // We don't block registration if virtual account fails, 
-      // but admin might need to regenerate it later.
     }
 
-    // 2. Create user and wallet in a transaction
+    // 2. Create Paystack Dedicated Account
+    let psAccount = null;
+    try {
+      // Create customer first
+      const nameParts = validatedData.name.split(' ');
+      const firstName = nameParts[0];
+      const lastName = nameParts.length > 1 ? nameParts[1] : 'User';
+      const customer = await PaymentService.createCustomer(
+        validatedData.email,
+        firstName,
+        lastName,
+        validatedData.phone
+      );
+      
+      // Create virtual account for customer
+      psAccount = await PaymentService.createVirtualAccount(customer.customer_code);
+    } catch (e) {
+      console.warn('Paystack Account Generation Failed:', e);
+    }
+
+    // 3. Create user and wallet in a transaction
     const result = await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
@@ -84,9 +102,15 @@ export const register = async (req: Request, res: Response) => {
           email: validatedData.email,
           phone: validatedData.phone,
           passwordHash,
-          virtualAccountNumber: virtualAccount?.accountNumber,
-          virtualAccountBank: virtualAccount?.bankName,
-          virtualAccountName: virtualAccount?.accountName,
+          // PaymentPoint Fields
+          ppAccountNumber: ppAccount?.accountNumber,
+          ppBankName: ppAccount?.bankName,
+          ppAccountName: ppAccount?.accountName,
+          // Paystack Fields
+          paystackCustomerId: psAccount?.customer?.customer_code,
+          psAccountNumber: psAccount?.account_number,
+          psBankName: psAccount?.bank?.name,
+          psAccountName: psAccount?.account_name,
           referredBy: referrerId,
         },
       });
@@ -128,7 +152,15 @@ export const register = async (req: Request, res: Response) => {
         // @ts-ignore
         profilePicture: result.user.profilePicture,
         // @ts-ignore
-        theme: result.user.theme
+        theme: result.user.theme,
+        // @ts-ignore
+        ppAccountNumber: result.user.ppAccountNumber,
+        // @ts-ignore
+        ppBankName: result.user.ppBankName,
+        // @ts-ignore
+        psAccountNumber: result.user.psAccountNumber,
+        // @ts-ignore
+        psBankName: result.user.psBankName
       },
       token,
       refreshToken,
@@ -174,6 +206,16 @@ export const login = async (req: Request, res: Response) => {
         email: user.email,
         role: user.role,
         twoFactorEnabled: user.twoFactorEnabled,
+        profilePicture: user.profilePicture,
+        theme: user.theme,
+        // @ts-ignore
+        ppAccountNumber: user.ppAccountNumber,
+        // @ts-ignore
+        ppBankName: user.ppBankName,
+        // @ts-ignore
+        psAccountNumber: user.psAccountNumber,
+        // @ts-ignore
+        psBankName: user.psBankName,
         referralCode: user.referralCode
       },
       token,
@@ -217,9 +259,20 @@ export const getProfile = async (req: Request, res: Response) => {
         phone: true,
         role: true,
         twoFactorEnabled: true,
-        virtualAccountNumber: true,
-        virtualAccountBank: true,
-        virtualAccountName: true,
+        // @ts-ignore
+        ppAccountNumber: true,
+        // @ts-ignore
+        ppBankName: true,
+        // @ts-ignore
+        ppAccountName: true,
+        // @ts-ignore
+        psAccountNumber: true,
+        // @ts-ignore
+        psBankName: true,
+        // @ts-ignore
+        psAccountName: true,
+        profilePicture: true,
+        theme: true,
         referralCode: true,
         wallet: true,
       },
