@@ -35,6 +35,8 @@ const generateTokens = (userId: string) => {
   return { token, refreshToken };
 };
 
+import { EmailService } from '../services/email.service';
+
 export const register = async (req: Request, res: Response) => {
   try {
     const validatedData = registerSchema.parse(req.body);
@@ -141,6 +143,9 @@ export const register = async (req: Request, res: Response) => {
     console.log('User created successfully:', result.user.id);
 
     const { token, refreshToken } = generateTokens(result.user.id);
+
+    // Send Welcome Email (Non-blocking)
+    EmailService.sendWelcomeEmail(validatedData.email, validatedData.name).catch(console.error);
 
     res.status(201).json({
       user: {

@@ -20,6 +20,12 @@ const envSchema = z.object({
   CHEAPDATAHUB_API_KEY: z.string().default('placeholder'),
   VTPASS_USERNAME: z.string().default('placeholder'),
   VTPASS_PASSWORD: z.string().default('placeholder'),
+  
+  // Email (SMTP) Configuration
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.string().default('587'),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

@@ -67,6 +67,8 @@ async function handlePaymentPointEvent(event: any, res: Response) {
   }
 }
 
+import { EmailService } from '../services/email.service';
+
 async function processSuccessfulFunding(email: string, amount: number, reference: string, provider: Provider) {
   const user = await prisma.user.findUnique({
     where: { email },
@@ -110,6 +112,9 @@ async function processSuccessfulFunding(email: string, amount: number, reference
       where: { id: user.wallet!.id },
       data: { balance: { increment: amount } },
     });
+
+    // Notify user via Email (Non-blocking)
+    EmailService.sendFundingNotification(user.email, amount, updatedWallet.balance).catch(console.error);
 
     await tx.auditLog.create({
       data: {
