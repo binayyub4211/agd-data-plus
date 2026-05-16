@@ -37,8 +37,8 @@ app.use(helmet.contentSecurityPolicy({
 // CORS setup
 app.use(cors());
 
-// Parse JSON payloads
-app.use(express.json());
+// Parse JSON payloads with a larger limit for profile pictures
+app.use(express.json({ limit: '5mb' }));
 
 // Apply global rate limiting
 app.use('/api', apiLimiter);
