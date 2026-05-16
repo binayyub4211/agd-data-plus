@@ -8,8 +8,9 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { 
   Users, Wallet, TrendingUp, ShieldAlert, ArrowUpRight, 
-  Search, Edit3, Check, X, Server, Database
+  Search, Edit3, Check, X, Server, Database, Megaphone
 } from 'lucide-react'
+import { BroadcastModal } from '@/components/admin/BroadcastModal'
 
 export function AdminPage() {
   const navigate = useNavigate()
@@ -20,6 +21,7 @@ export function AdminPage() {
   const [creditModal, setCreditModal] = useState<{ isOpen: boolean, userId: string, name: string }>({ isOpen: false, userId: '', name: '' })
   const [creditAmount, setCreditAmount] = useState('')
   const [isRegenerating, setIsRegenerating] = useState(false)
+  const [isBroadcastOpen, setIsBroadcastOpen] = useState(false)
 
   const fetchData = async () => {
     try {
@@ -124,6 +126,14 @@ export function AdminPage() {
               className="text-xs uppercase tracking-widest bg-brand-gold hover:bg-brand-gold/80 text-brand-midnight font-black"
             >
               Regenerate Accounts
+            </Button>
+            <Button 
+              size="sm" 
+              onClick={() => setIsBroadcastOpen(true)} 
+              className="text-xs uppercase tracking-widest bg-brand-royal hover:bg-brand-royal/80 text-white font-black flex items-center gap-2"
+            >
+              <Megaphone size={14} />
+              Send Broadcast
             </Button>
             <Button size="sm" variant="outline" onClick={() => navigate('/dashboard')} className="text-xs uppercase tracking-widest border-brand-royal/20">
               Exit Console
@@ -289,6 +299,11 @@ export function AdminPage() {
           </div>
         )}
       </AnimatePresence>
+
+      <BroadcastModal 
+        isOpen={isBroadcastOpen} 
+        onClose={() => setIsBroadcastOpen(false)} 
+      />
     </div>
   )
 }

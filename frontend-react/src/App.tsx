@@ -7,6 +7,7 @@ import { DashboardPage } from '@/pages/dashboard/DashboardPage'
 import { AdminPage } from '@/pages/admin/AdminPage'
 import { ReferralsPage } from '@/pages/dashboard/ReferralsPage'
 import { BulkSmsPage } from '@/pages/dashboard/BulkSmsPage'
+import { UserSettingsPage } from '@/pages/dashboard/UserSettingsPage'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 
 export default function App() {
@@ -38,6 +39,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <ReferralsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/settings"
+            element={
+              <ProtectedRoute>
+                <UserSettingsPage />
               </ProtectedRoute>
             }
           />

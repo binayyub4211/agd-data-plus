@@ -202,3 +202,51 @@ export const generateSingleAccount = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+export const broadcastNotification = async (req: Request, res: Response) => {
+  try {
+    const { title, message, type, sendEmail } = req.body;
+
+    if (!title || !message) {
+      return res.status(400).json({ error: 'Title and message are required' });
+    }
+
+    // 1. Get all users
+    const users = await prisma.user.findMany({
+      select: { id: true, email: true }
+    });
+
+    // 2. Create in-app notifications for everyone
+    const notifications = users.map(user => ({
+      userId: user.id,
+      title,
+      message,
+      type: type || 'INFO',
+    }));
+
+    await prisma.notification.createMany({
+      data: notifications
+    });
+
+    // 3. Optionally blast emails
+    if (sendEmail) {
+      const emailService = require('../services/EmailService').EmailService;
+      // Map over all users and send emails asynchronously
+      // Warning: For >10,000 users, use a dedicated queue (like BullMQ)
+      const emailPromises = users.map(user => 
+        emailService.sendAdminBroadcast(user.email, title, message).catch((e: any) => console.error(e))
+      );
+      
+      // We don't await all of them so we don't block the response, 
+      // but in a production scale app, this should be a background job.
+      Promise.allSettled(emailPromises);
+    }
+
+    res.json({ 
+      success: true, 
+      message: `Broadcast sent to ${users.length} users successfully.` 
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to send broadcast' });
+  }
+};

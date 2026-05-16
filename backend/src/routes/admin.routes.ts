@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getAdminStats, getAllUsers, manualCreditUser, generateMissingAccounts, generateSingleAccount } from '../controllers/admin.controller';
+import { getAdminStats, getAllUsers, manualCreditUser, generateMissingAccounts, generateSingleAccount, broadcastNotification } from '../controllers/admin.controller';
 import { protect } from '../middleware/auth.middleware';
 import { isAdmin } from '../middleware/admin.middleware';
 
@@ -14,5 +14,6 @@ router.get('/users', getAllUsers);
 router.post('/users/credit', manualCreditUser);
 router.post('/accounts/regenerate', generateMissingAccounts);
 router.post('/accounts/generate/:userId', generateSingleAccount);
+router.post('/broadcast', broadcastNotification);
 
 export default router;

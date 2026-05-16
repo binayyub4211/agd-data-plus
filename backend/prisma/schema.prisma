@@ -19,6 +19,8 @@ model User {
   phone          String        @unique
   passwordHash   String
   role           String        @default("USER") // USER, RESELLER, ADMIN
+  profilePicture String?       // URL to cloudinary or base64
+  theme          String        @default("DARK") // DARK, LIGHT, SYSTEM
   
   // 2FA Fields
   twoFactorSecret String?
@@ -143,11 +145,13 @@ model Referral {
 model Notification {
   id        String   @id @default(uuid())
   userId    String
-  title     String
-  message   String
-  type      String   @default("INFO") // INFO, SUCCESS, WARNING, ERROR
-  isRead    Boolean  @default(false)
-  createdAt DateTime @default(now())
+  title        String
+  message      String
+  type         String   @default("INFO") // INFO, SUCCESS, WARNING, ERROR
+  isRead       Boolean  @default(false)
+  replyMessage String?  // User's response
+  hasReplied   Boolean  @default(false)
+  createdAt    DateTime @default(now())
 
   @@index([userId])
   @@map("notifications")

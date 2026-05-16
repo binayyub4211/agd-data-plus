@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { config } from '../config/config';
 import { prisma } from '../utils/prisma';
 import { PaymentPointService } from '../services/PaymentPointService';
+import { EmailService } from '../services/EmailService';
 
 // Validation Schemas
 const registerSchema = z.object({
@@ -114,6 +115,10 @@ export const register = async (req: Request, res: Response) => {
       token,
       refreshToken,
     });
+
+    // Send Welcome Email asynchronously
+    EmailService.sendWelcomeEmail(result.user.email, result.user.name).catch(e => console.error('Failed to send welcome email', e));
+
   } catch (error: any) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors });

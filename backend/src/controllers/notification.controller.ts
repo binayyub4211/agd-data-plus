@@ -70,3 +70,32 @@ export const deleteNotification = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to delete notification' });
   }
 };
+
+export const replyToNotification = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    // @ts-ignore
+    const userId = req.user.id;
+    const { replyMessage } = req.body;
+
+    if (!replyMessage || replyMessage.trim() === '') {
+      return res.status(400).json({ error: 'Reply message is required' });
+    }
+
+    const notification = await prisma.notification.updateMany({
+      where: { id, userId },
+      data: { 
+        replyMessage,
+        hasReplied: true
+      }
+    });
+
+    if (notification.count === 0) {
+       return res.status(404).json({ error: 'Notification not found' });
+    }
+
+    res.json({ success: true, message: 'Reply submitted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to submit reply' });
+  }
+};

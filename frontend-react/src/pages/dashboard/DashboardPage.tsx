@@ -140,7 +140,10 @@ export function DashboardPage() {
           </div>
           <div className="flex items-center gap-3">
             <NotificationBell />
-            <button className="w-9 h-9 rounded-xl bg-brand-royal/10 border border-brand-royal/20 flex items-center justify-center text-brand-silver/50 hover:text-brand-cyan transition-colors">
+            <button 
+              onClick={() => navigate('/dashboard/settings')}
+              className="w-9 h-9 rounded-xl bg-brand-royal/10 border border-brand-royal/20 flex items-center justify-center text-brand-silver/50 hover:text-brand-cyan transition-colors"
+            >
               <User size={16} />
             </button>
             <button

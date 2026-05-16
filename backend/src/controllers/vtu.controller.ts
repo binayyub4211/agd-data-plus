@@ -5,6 +5,7 @@ import { ServiceType, TransactionStatus, Provider } from '../types/prisma';
 import { z } from 'zod';
 // @ts-ignore
 import { v4 as uuidv4 } from 'uuid';
+import { EmailService } from '../services/EmailService';
 
 const vtuEngine = new VtuEngine();
 
@@ -99,6 +100,15 @@ export const purchaseService = async (req: Request, res: Response) => {
           type: 'SUCCESS'
         }
       });
+
+      // Send Email Receipt Asynchronously
+      EmailService.sendPurchaseReceipt(
+        result.user.email,
+        result.user.name,
+        validated.serviceType,
+        validated.amount,
+        result.transaction.reference
+      ).catch(e => console.error('Failed to send purchase receipt', e));
 
       res.json({
         success: true,

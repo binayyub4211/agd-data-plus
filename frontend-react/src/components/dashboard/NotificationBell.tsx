@@ -56,6 +56,21 @@ export function NotificationBell() {
     }
   }
 
+  const [replyingTo, setReplyingTo] = useState<string | null>(null)
+  const [replyText, setReplyText] = useState('')
+
+  const handleReply = async (id: string) => {
+    if (!replyText.trim()) return
+    try {
+      await api.post(`/notifications/${id}/reply`, { replyMessage: replyText })
+      setReplyingTo(null)
+      setReplyText('')
+      fetchNotifications()
+    } catch (err) {
+      console.error('Failed to reply')
+    }
+  }
+
   return (
     <div className="relative">
       <button 
@@ -111,35 +126,65 @@ export function NotificationBell() {
                 ) : (
                   <div className="divide-y divide-brand-royal/5">
                     {notifications.map((n) => (
-                      <div key={n.id} className={`p-4 flex gap-4 hover:bg-white/[0.02] transition-colors group ${!n.isRead ? 'bg-brand-cyan/5' : ''}`}>
-                        <div className={`mt-1 w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                          n.type === 'SUCCESS' ? 'bg-green-500/10 text-green-500' :
-                          n.type === 'WARNING' ? 'bg-amber-500/10 text-amber-500' :
-                          'bg-brand-cyan/10 text-brand-cyan'
-                        }`}>
-                          {n.type === 'SUCCESS' ? <CheckCircle2 size={14} /> :
-                           n.type === 'WARNING' ? <AlertCircle size={14} /> :
-                           <Info size={14} />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2 mb-1">
-                            <p className={`text-xs font-black truncate ${!n.isRead ? 'text-white' : 'text-brand-silver/60'}`}>{n.title}</p>
-                            <span className="text-[8px] font-medium text-brand-silver/20 whitespace-nowrap">
-                              {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
+                      <div key={n.id} className={`p-4 flex flex-col gap-2 hover:bg-white/[0.02] transition-colors group ${!n.isRead ? 'bg-brand-cyan/5' : ''}`}>
+                        <div className="flex gap-4">
+                          <div className={`mt-1 w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                            n.type === 'SUCCESS' ? 'bg-green-500/10 text-green-500' :
+                            n.type === 'WARNING' ? 'bg-amber-500/10 text-amber-500' :
+                            'bg-brand-cyan/10 text-brand-cyan'
+                          }`}>
+                            {n.type === 'SUCCESS' ? <CheckCircle2 size={14} /> :
+                             n.type === 'WARNING' ? <AlertCircle size={14} /> :
+                             <Info size={14} />}
                           </div>
-                          <p className="text-[11px] text-brand-silver/40 leading-relaxed mb-2">{n.message}</p>
-                          <div className="flex gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                            {!n.isRead && (
-                              <button onClick={() => markAsRead(n.id)} className="text-[9px] font-black text-brand-cyan uppercase tracking-widest flex items-center gap-1">
-                                <Check size={10} /> Read
-                              </button>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <p className={`text-xs font-black truncate ${!n.isRead ? 'text-white' : 'text-brand-silver/60'}`}>{n.title}</p>
+                              <span className="text-[8px] font-medium text-brand-silver/20 whitespace-nowrap">
+                                {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-brand-silver/40 leading-relaxed mb-2">{n.message}</p>
+                            
+                            {n.hasReplied && (
+                              <div className="bg-brand-midnight/50 p-2 rounded-lg border border-brand-royal/5 mb-2">
+                                <p className="text-[8px] font-black text-brand-cyan uppercase tracking-widest mb-1">Your Reply</p>
+                                <p className="text-[10px] text-brand-silver/50 italic">"{n.replyMessage}"</p>
+                              </div>
                             )}
-                            <button onClick={() => deleteNotif(n.id)} className="text-[9px] font-black text-red-400 uppercase tracking-widest flex items-center gap-1">
-                              <Trash2 size={10} /> Clear
-                            </button>
+
+                            <div className="flex gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                              {!n.isRead && (
+                                <button onClick={() => markAsRead(n.id)} className="text-[9px] font-black text-brand-cyan uppercase tracking-widest flex items-center gap-1">
+                                  <Check size={10} /> Read
+                                </button>
+                              )}
+                              {!n.hasReplied && replyingTo !== n.id && (
+                                <button onClick={() => setReplyingTo(n.id)} className="text-[9px] font-black text-brand-gold uppercase tracking-widest flex items-center gap-1">
+                                  Reply
+                                </button>
+                              )}
+                              <button onClick={() => deleteNotif(n.id)} className="text-[9px] font-black text-red-400 uppercase tracking-widest flex items-center gap-1">
+                                <Trash2 size={10} /> Clear
+                              </button>
+                            </div>
                           </div>
                         </div>
+
+                        {replyingTo === n.id && (
+                          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="mt-2 pl-12 space-y-2">
+                            <textarea
+                              value={replyText}
+                              onChange={(e) => setReplyText(e.target.value)}
+                              placeholder="Type your response..."
+                              className="w-full bg-brand-midnight border border-brand-royal/20 rounded-xl p-2 text-[10px] focus:outline-none focus:border-brand-cyan min-h-[60px]"
+                            />
+                            <div className="flex gap-2 justify-end">
+                              <button onClick={() => setReplyingTo(null)} className="text-[8px] font-bold text-brand-silver/30 uppercase">Cancel</button>
+                              <button onClick={() => handleReply(n.id)} className="px-3 py-1 bg-brand-cyan text-brand-midnight rounded-lg text-[8px] font-black uppercase tracking-widest">Send Reply</button>
+                            </div>
+                          </motion.div>
+                        )}
                       </div>
                     ))}
                   </div>
