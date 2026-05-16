@@ -83,10 +83,10 @@ export function AdminPage() {
     }
   }
 
-  const handleGenerateSingleAccount = async (userId: string) => {
+  const handleGenerateSingleAccount = async (userId: string, provider: 'PAYSTACK' | 'PAYMENTPOINT') => {
     try {
-      await api.post('/user/generate-accounts', { targetId: userId })
-      toast.success('Accounts generated successfully!')
+      await api.post('/user/generate-accounts', { targetId: userId, provider })
+      toast.success(`${provider} Account generated successfully!`)
       fetchData()
     } catch (err: any) {
       toast.error(err.response?.data?.error ?? 'Failed to generate account')
@@ -211,12 +211,21 @@ export function AdminPage() {
                         <td className="px-6 py-4 text-right">
                           <div className="flex justify-end gap-2">
                             {/* @ts-ignore */}
-                            {(!user.ppAccountNumber || !user.psAccountNumber) && (
+                            {!user.psAccountNumber && (
                               <button 
-                                onClick={() => handleGenerateSingleAccount(user.id)}
+                                onClick={() => handleGenerateSingleAccount(user.id, 'PAYSTACK')}
+                                className="px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-500 text-[10px] font-black uppercase tracking-widest hover:bg-blue-500 hover:text-white transition-all"
+                              >
+                                Gen PS
+                              </button>
+                            )}
+                            {/* @ts-ignore */}
+                            {!user.ppAccountNumber && (
+                              <button 
+                                onClick={() => handleGenerateSingleAccount(user.id, 'PAYMENTPOINT')}
                                 className="px-3 py-1.5 rounded-lg bg-brand-gold/10 border border-brand-gold/20 text-brand-gold text-[10px] font-black uppercase tracking-widest hover:bg-brand-gold hover:text-brand-midnight transition-all"
                               >
-                                Generate Acc
+                                Gen PP
                               </button>
                             )}
                             <button 

@@ -122,51 +122,63 @@ export const generateAccounts = async (req: Request, res: Response) => {
     const userRole = req.user.role;
     
     // If admin is providing targetId, use that, otherwise use current user id
-    const { targetId } = req.body;
+    const { targetId, provider } = req.body;
     const userId = (userRole === 'ADMIN' && targetId) ? targetId : currentUserId;
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    console.log(`Manually generating accounts for ${user.email}...`);
+    console.log(`Manually generating ${provider || 'ALL'} accounts for ${user.email}...`);
+
+    let ppAccount = null;
+    let psAccount = null;
 
     // 1. PaymentPoint
-    let ppAccount = null;
-    try {
-      ppAccount = await PaymentPointService.createDedicatedAccount(user.email, user.name, user.phone);
-    } catch (e) { console.error('PP Gen Error:', e); }
+    if (!provider || provider === 'PAYMENTPOINT') {
+      try {
+        ppAccount = await PaymentPointService.createDedicatedAccount(user.email, user.name, user.phone);
+      } catch (e) { 
+        console.error('PP Gen Error:', e); 
+        if (provider === 'PAYMENTPOINT') throw new Error('PaymentPoint is currently unavailable');
+      }
+    }
 
     // 2. Paystack
-    let psAccount = null;
-    try {
-      const nameParts = user.name.split(' ');
-      const firstName = nameParts[0];
-      const lastName = nameParts.length > 1 ? nameParts[1] : 'User';
-      const customer = await PaymentService.createCustomer(user.email, firstName, lastName, user.phone);
-      psAccount = await PaymentService.createVirtualAccount(customer.customer_code);
-    } catch (e) { console.error('PS Gen Error:', e); }
+    if (!provider || provider === 'PAYSTACK') {
+      try {
+        const nameParts = user.name.split(' ');
+        const firstName = nameParts[0];
+        const lastName = nameParts.length > 1 ? nameParts[1] : 'User';
+        const customer = await PaymentService.createCustomer(user.email, firstName, lastName, user.phone);
+        psAccount = await PaymentService.createVirtualAccount(customer.customer_code);
+        if (provider === 'PAYSTACK' && !psAccount) throw new Error('Paystack could not generate account at this time');
+      } catch (e: any) { 
+        console.error('PS Gen Error:', e); 
+        if (provider === 'PAYSTACK') throw new Error(e.message || 'Paystack is currently unavailable');
+      }
+    }
 
     // Update User
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: {
         // @ts-ignore
-        ppAccountNumber: ppAccount?.accountNumber || user.ppAccountNumber,
+        ...(ppAccount && {
+          ppAccountNumber: ppAccount.accountNumber,
+          ppBankName: ppAccount.bankName,
+          ppAccountName: ppAccount.accountName,
+        }),
         // @ts-ignore
-        ppBankName: ppAccount?.bankName || user.ppBankName,
-        // @ts-ignore
-        ppAccountName: ppAccount?.accountName || user.ppAccountName,
-        // @ts-ignore
-        psAccountNumber: psAccount?.account_number || user.psAccountNumber,
-        // @ts-ignore
-        psBankName: psAccount?.bank?.name || user.psBankName,
-        // @ts-ignore
-        psAccountName: psAccount?.account_name || user.psAccountName,
-        paystackCustomerId: psAccount?.customer?.customer_code || user.paystackCustomerId
+        ...(psAccount && {
+          psAccountNumber: psAccount.account_number,
+          psBankName: psAccount.bank?.name,
+          psAccountName: psAccount.account_name,
+          paystackCustomerId: psAccount.customer?.customer_code
+        })
       }
     });
 
-    res.json({ message: 'Accounts generated successfully', user: updatedUser });
+    res.json({ message: `${provider || 'Accounts'} generated successfully`, user: updatedUser });
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Failed to generate accounts' });
   }

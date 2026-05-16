@@ -105,9 +105,20 @@ export function DashboardPage() {
     navigate('/auth/login')
   }
 
-  const handleFundWallet = () => {
-    setIsFundingOpen(true)
-  }
+  const handleFundWallet = () => setIsFundingOpen(true)
+
+  const handleRegenerateProvider = async (provider: 'PAYSTACK' | 'PAYMENTPOINT') => {
+    setLoading(true);
+    try {
+      await api.post('/user/generate-accounts', { provider });
+      toast.success(`${provider === 'PAYSTACK' ? 'Paystack' : 'PaymentPoint'} A/C updated!`);
+      fetchProfile(true);
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || `Failed to update ${provider} A/C`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -245,56 +256,77 @@ export function DashboardPage() {
                 </div>
 
                 {/* Paystack Account */}
-                {user?.psAccountNumber && (
-                  <div className="p-4 rounded-2xl bg-brand-royal/10 border border-brand-royal/20">
-                    <p className="text-brand-silver/40 text-[8px] font-black uppercase tracking-widest mb-1">Method 1: Paystack (Wema Bank)</p>
-                    <h3 className="text-xl font-black text-white tracking-widest font-display">{user.psAccountNumber}</h3>
-                    <p className="text-brand-cyan font-bold text-[10px] uppercase tracking-wider">{user.psBankName}</p>
-                    <button onClick={() => { navigator.clipboard.writeText(user.psAccountNumber); toast.success('Paystack A/C Copied!'); }} className="mt-2 text-[10px] text-brand-silver/30 hover:text-brand-cyan flex items-center gap-1">
-                      <Copy size={10} /> Copy Account
-                    </button>
+                <div className="p-4 rounded-2xl bg-brand-royal/10 border border-brand-royal/20 relative">
+                  <div className="flex justify-between items-start mb-1">
+                    <p className="text-brand-silver/40 text-[8px] font-black uppercase tracking-widest">Method 1: Paystack (Wema Bank)</p>
+                    {user?.psAccountNumber && (
+                      <button 
+                        onClick={() => handleRegenerateProvider('PAYSTACK')}
+                        className="p-1 hover:bg-white/10 rounded-md text-brand-cyan/40 hover:text-brand-cyan transition-colors"
+                        title="Refresh Paystack A/C"
+                      >
+                        <Clock size={12} />
+                      </button>
+                    )}
                   </div>
-                )}
-
-                {/* PaymentPoint Account */}
-                {user?.ppAccountNumber && (
-                  <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
-                    <p className="text-brand-silver/40 text-[8px] font-black uppercase tracking-widest mb-1">Method 2: PaymentPoint</p>
-                    <h3 className="text-xl font-black text-white tracking-widest font-display">{user.ppAccountNumber}</h3>
-                    <p className="text-brand-cyan font-bold text-[10px] uppercase tracking-wider">{user.ppBankName}</p>
-                    <button onClick={() => { navigator.clipboard.writeText(user.ppAccountNumber); toast.success('PaymentPoint A/C Copied!'); }} className="mt-2 text-[10px] text-brand-silver/30 hover:text-brand-cyan flex items-center gap-1">
-                      <Copy size={10} /> Copy Account
-                    </button>
-                  </div>
-                )}
-
-                {(!user?.psAccountNumber || !user?.ppAccountNumber) && (
-                  <div className="space-y-4 pt-2">
-                    <p className="text-[10px] text-brand-silver/30 italic">Missing an account?</p>
+                  {user?.psAccountNumber ? (
+                    <>
+                      <h3 className="text-xl font-black text-white tracking-widest font-display">{user.psAccountNumber}</h3>
+                      <p className="text-brand-cyan font-bold text-[10px] uppercase tracking-wider">{user.psBankName}</p>
+                      <button onClick={() => { navigator.clipboard.writeText(user.psAccountNumber!); toast.success('Paystack A/C Copied!'); }} className="mt-2 text-[10px] text-brand-silver/30 hover:text-brand-cyan flex items-center gap-1">
+                        <Copy size={10} /> Copy Account
+                      </button>
+                    </>
+                  ) : (
                     <Button 
                       size="sm" 
                       variant="outline" 
-                      className="w-full text-[10px] border-brand-royal/20"
-                      onClick={async () => {
-                        setLoading(true);
-                        try {
-                          await api.post('/user/generate-accounts');
-                          toast.success('Generating your accounts...');
-                          fetchProfile(true);
-                        } catch (e) {
-                          toast.error('Generation failed');
-                        } finally {
-                          setLoading(false);
-                        }
-                      }}
+                      className="w-full mt-2 text-[8px] h-8 border-brand-royal/30 text-brand-cyan"
+                      onClick={() => handleRegenerateProvider('PAYSTACK')}
+                      loading={loading}
                     >
-                      Generate My Accounts
+                      Generate Paystack A/C
                     </Button>
+                  )}
+                </div>
+
+                {/* PaymentPoint Account */}
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 relative">
+                  <div className="flex justify-between items-start mb-1">
+                    <p className="text-brand-silver/40 text-[8px] font-black uppercase tracking-widest">Method 2: PaymentPoint</p>
+                    {user?.ppAccountNumber && (
+                      <button 
+                        onClick={() => handleRegenerateProvider('PAYMENTPOINT')}
+                        className="p-1 hover:bg-white/10 rounded-md text-brand-silver/20 hover:text-brand-cyan transition-colors"
+                        title="Refresh PaymentPoint A/C"
+                      >
+                        <Clock size={12} />
+                      </button>
+                    )}
                   </div>
-                )}
+                  {user?.ppAccountNumber ? (
+                    <>
+                      <h3 className="text-xl font-black text-white tracking-widest font-display">{user.ppAccountNumber}</h3>
+                      <p className="text-brand-cyan font-bold text-[10px] uppercase tracking-wider">{user.ppBankName}</p>
+                      <button onClick={() => { navigator.clipboard.writeText(user.ppAccountNumber!); toast.success('PaymentPoint A/C Copied!'); }} className="mt-2 text-[10px] text-brand-silver/30 hover:text-brand-cyan flex items-center gap-1">
+                        <Copy size={10} /> Copy Account
+                      </button>
+                    </>
+                  ) : (
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="w-full mt-2 text-[8px] h-8 border-white/10 text-brand-silver/50"
+                      onClick={() => handleRegenerateProvider('PAYMENTPOINT')}
+                      loading={loading}
+                    >
+                      Generate PaymentPoint A/C
+                    </Button>
+                  )}
+                </div>
               </div>
               <p className="text-[9px] text-brand-silver/20 mt-6 leading-relaxed">
-                Transfer to either account for instant funding.
+                If an account is missing, click "Generate" to create it.
               </p>
             </Card>
           </motion.div>
