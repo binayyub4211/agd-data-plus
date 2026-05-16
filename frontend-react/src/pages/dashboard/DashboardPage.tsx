@@ -12,7 +12,7 @@ import { TransactionProcessing } from '@/components/dashboard/TransactionProcess
 import { NotificationBell } from '@/components/dashboard/NotificationBell'
 import {
   Wallet, Copy, Banknote, ShieldCheck, Check, ShieldAlert, Mail,
-  Wifi, Smartphone, Zap, Monitor, LogOut, User, Bell, Clock, ArrowDownLeft
+  Wifi, Smartphone, Zap, Monitor, LogOut, User, Bell, Clock, ArrowDownLeft, Settings
 } from 'lucide-react'
 
 const SERVICES = [
@@ -125,12 +125,18 @@ export function DashboardPage() {
       {/* Top Nav */}
       <header className="sticky top-0 z-40 border-b border-brand-royal/10 bg-brand-midnight/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="AGD" className="w-8 h-8 object-contain" />
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/dashboard')}>
+            {user?.profilePicture ? (
+              <div className="w-10 h-10 rounded-xl overflow-hidden border border-brand-royal/20">
+                <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+              </div>
+            ) : (
+              <img src="/logo.png" alt="AGD" className="w-8 h-8 object-contain" />
+            )}
             <span className="font-black text-white text-sm tracking-tight font-display hidden sm:block">AGD DATA PLUS</span>
             {user?.role === 'ADMIN' && (
               <button 
-                onClick={() => navigate('/admin')}
+                onClick={(e) => { e.stopPropagation(); navigate('/admin'); }}
                 className="ml-4 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-red-500 hover:text-white transition-all flex items-center gap-2"
               >
                 <ShieldAlert size={12} />
@@ -142,6 +148,14 @@ export function DashboardPage() {
             <NotificationBell />
             <button 
               onClick={() => navigate('/dashboard/settings')}
+              title="Settings"
+              className="w-9 h-9 rounded-xl bg-brand-royal/10 border border-brand-royal/20 flex items-center justify-center text-brand-silver/50 hover:text-brand-cyan transition-colors"
+            >
+              <Settings size={16} />
+            </button>
+            <button 
+              onClick={() => navigate('/dashboard/profile')}
+              title="View Profile"
               className="w-9 h-9 rounded-xl bg-brand-royal/10 border border-brand-royal/20 flex items-center justify-center text-brand-silver/50 hover:text-brand-cyan transition-colors"
             >
               <User size={16} />

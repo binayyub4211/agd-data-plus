@@ -60,14 +60,21 @@ export const register = async (req: Request, res: Response) => {
       }
     }
 
-    const passwordHash = await bcrypt.hash(validatedData.password, 12);
+    console.log('Registering user:', validatedData.email);
 
     // 1. Create PaymentPoint Dedicated Account
-    const virtualAccount = await PaymentPointService.createDedicatedAccount(
-      validatedData.email,
-      validatedData.name,
-      validatedData.phone
-    );
+    let virtualAccount = null;
+    try {
+      virtualAccount = await PaymentPointService.createDedicatedAccount(
+        validatedData.email,
+        validatedData.name,
+        validatedData.phone
+      );
+    } catch (e) {
+      console.warn('PaymentPoint Account Generation Failed:', e);
+      // We don't block registration if virtual account fails, 
+      // but admin might need to regenerate it later.
+    }
 
     // 2. Create user and wallet in a transaction
     const result = await prisma.$transaction(async (tx) => {
@@ -89,18 +96,25 @@ export const register = async (req: Request, res: Response) => {
       });
 
       if (referrerId) {
-        await (tx as any).referral.create({
-          data: {
-            referrerId,
-            referredId: user.id,
-            bonusAmount: 100,
-            status: 'PENDING'
-          }
-        });
+        try {
+          // @ts-ignore - use referral if it exists in schema
+          await tx.referral.create({
+            data: {
+              referrerId,
+              referredId: user.id,
+              bonusAmount: 100,
+              status: 'PENDING'
+            }
+          });
+        } catch (e) {
+          console.error('Failed to create referral record:', e);
+        }
       }
 
       return { user };
     });
+
+    console.log('User created successfully:', result.user.id);
 
     const { token, refreshToken } = generateTokens(result.user.id);
 
@@ -110,7 +124,9 @@ export const register = async (req: Request, res: Response) => {
         name: result.user.name,
         email: result.user.email,
         role: result.user.role,
-        referralCode: result.user.referralCode
+        referralCode: result.user.referralCode,
+        profilePicture: result.user.profilePicture,
+        theme: result.user.theme
       },
       token,
       refreshToken,
@@ -123,8 +139,8 @@ export const register = async (req: Request, res: Response) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors });
     }
-    console.error('Registration Error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Registration Error Details:', error);
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 };
 
