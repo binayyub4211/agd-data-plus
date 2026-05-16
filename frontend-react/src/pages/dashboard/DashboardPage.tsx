@@ -185,9 +185,6 @@ export function DashboardPage() {
           {/* Balance Card */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="lg:col-span-2">
             <Card className="p-8 bg-gradient-to-br from-brand-royal/30 via-brand-midnight/60 to-brand-midnight/80 border-brand-royal/20 relative overflow-hidden group h-full">
-              <div className="absolute top-0 right-0 w-64 h-64 opacity-5 group-hover:opacity-10 transition-opacity">
-                <Wallet size={256} />
-              </div>
               <div className="relative z-10 flex flex-col h-full justify-between">
                 <div>
                   <div className="flex items-center gap-2 text-brand-silver/50 text-xs font-bold uppercase tracking-widest mb-4">
@@ -206,16 +203,13 @@ export function DashboardPage() {
                     <span className="text-brand-cyan text-xs font-bold uppercase tracking-widest">Wallet Active</span>
                   </div>
                 </div>
-                <div className="flex gap-3 mt-10">
+                <div className="mt-10">
                   <Button
                     size="lg"
                     onClick={handleFundWallet}
-                    className="flex-1 bg-white text-brand-midnight hover:bg-brand-silver font-black shadow-[0_0_30px_rgba(255,255,255,0.15)] transition-all"
+                    className="w-full sm:w-64 bg-white text-brand-midnight hover:bg-brand-silver font-black shadow-[0_0_30px_rgba(255,255,255,0.15)] transition-all"
                   >
                     Fund Wallet
-                  </Button>
-                  <Button size="lg" variant="outline" className="flex-1 border-white/10">
-                    Transfer
                   </Button>
                 </div>
               </div>
@@ -230,13 +224,30 @@ export function DashboardPage() {
                   <span className="px-3 py-1 bg-brand-cyan/10 text-brand-cyan text-[10px] font-black uppercase tracking-[0.2em] rounded-full border border-brand-cyan/20">
                     Auto-Funding
                   </span>
-                  <Banknote size={18} className="text-brand-silver/20" />
+                  <button 
+                    onClick={async () => {
+                      setLoading(true);
+                      try {
+                        await api.post('/user/generate-accounts');
+                        toast.success('Accounts regenerated!');
+                        fetchProfile(true);
+                      } catch (e) {
+                        toast.error('Failed to regenerate accounts');
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    title="Refresh Accounts"
+                    className="p-2 hover:bg-white/5 rounded-lg text-brand-silver/30 hover:text-brand-cyan transition-colors"
+                  >
+                    <Clock size={16} />
+                  </button>
                 </div>
 
                 {/* Paystack Account */}
                 {user?.psAccountNumber && (
                   <div className="p-4 rounded-2xl bg-brand-royal/10 border border-brand-royal/20">
-                    <p className="text-brand-silver/40 text-[8px] font-black uppercase tracking-widest mb-1">Method 1: Paystack (Fastest)</p>
+                    <p className="text-brand-silver/40 text-[8px] font-black uppercase tracking-widest mb-1">Method 1: Paystack (Wema Bank)</p>
                     <h3 className="text-xl font-black text-white tracking-widest font-display">{user.psAccountNumber}</h3>
                     <p className="text-brand-cyan font-bold text-[10px] uppercase tracking-wider">{user.psBankName}</p>
                     <button onClick={() => { navigator.clipboard.writeText(user.psAccountNumber); toast.success('Paystack A/C Copied!'); }} className="mt-2 text-[10px] text-brand-silver/30 hover:text-brand-cyan flex items-center gap-1">
@@ -257,10 +268,28 @@ export function DashboardPage() {
                   </div>
                 )}
 
-                {(!user?.psAccountNumber && !user?.ppAccountNumber) && (
-                  <div className="space-y-3 mt-3">
-                    <div className="h-8 w-40 bg-brand-silver/5 rounded-xl animate-pulse" />
-                    <p className="text-brand-silver/30 text-xs italic">Assigning your accounts...</p>
+                {(!user?.psAccountNumber || !user?.ppAccountNumber) && (
+                  <div className="space-y-4 pt-2">
+                    <p className="text-[10px] text-brand-silver/30 italic">Missing an account?</p>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="w-full text-[10px] border-brand-royal/20"
+                      onClick={async () => {
+                        setLoading(true);
+                        try {
+                          await api.post('/user/generate-accounts');
+                          toast.success('Generating your accounts...');
+                          fetchProfile(true);
+                        } catch (e) {
+                          toast.error('Generation failed');
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                    >
+                      Generate My Accounts
+                    </Button>
                   </div>
                 )}
               </div>

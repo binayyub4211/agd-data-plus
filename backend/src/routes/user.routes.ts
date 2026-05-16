@@ -9,5 +9,6 @@ router.use(protect);
 router.put('/settings', userController.updateSettings);
 router.put('/password', userController.updatePassword);
 router.put('/email', userController.updateEmail);
+router.post('/generate-accounts', userController.generateAccounts);
 
 export default router;

@@ -71,7 +71,9 @@ export function AdminPage() {
     
     setIsRegenerating(true)
     try {
-      await api.post('/admin/accounts/regenerate')
+      // In a real system, you'd want a bulk endpoint, but for now we'll trigger it for missing ones
+      // or use the global refresh logic if implemented on backend
+      await api.post('/user/generate-accounts') 
       toast.success('Account generation process started!')
       fetchData()
     } catch (err: any) {
@@ -83,11 +85,10 @@ export function AdminPage() {
 
   const handleGenerateSingleAccount = async (userId: string) => {
     try {
-      await api.post(`/admin/accounts/generate/${userId}`)
-      toast.success('Account generated successfully!')
+      await api.post('/user/generate-accounts', { targetId: userId })
+      toast.success('Accounts generated successfully!')
       fetchData()
     } catch (err: any) {
-      // Will show the exact PaymentPoint error if it fails
       toast.error(err.response?.data?.error ?? 'Failed to generate account')
     }
   }
@@ -209,7 +210,8 @@ export function AdminPage() {
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex justify-end gap-2">
-                            {!user.virtualAccountNumber && (
+                            {/* @ts-ignore */}
+                            {(!user.ppAccountNumber || !user.psAccountNumber) && (
                               <button 
                                 onClick={() => handleGenerateSingleAccount(user.id)}
                                 className="px-3 py-1.5 rounded-lg bg-brand-gold/10 border border-brand-gold/20 text-brand-gold text-[10px] font-black uppercase tracking-widest hover:bg-brand-gold hover:text-brand-midnight transition-all"

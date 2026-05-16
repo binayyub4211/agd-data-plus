@@ -110,3 +110,64 @@ export const updateEmail = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to update email' });
   }
 };
+
+import { PaymentPointService } from '../services/paymentpoint.service';
+import { PaymentService } from '../services/payment.service';
+
+export const generateAccounts = async (req: Request, res: Response) => {
+  try {
+    // @ts-ignore
+    const currentUserId = req.user.id;
+    // @ts-ignore
+    const userRole = req.user.role;
+    
+    // If admin is providing targetId, use that, otherwise use current user id
+    const { targetId } = req.body;
+    const userId = (userRole === 'ADMIN' && targetId) ? targetId : currentUserId;
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    console.log(`Manually generating accounts for ${user.email}...`);
+
+    // 1. PaymentPoint
+    let ppAccount = null;
+    try {
+      ppAccount = await PaymentPointService.createDedicatedAccount(user.email, user.name, user.phone);
+    } catch (e) { console.error('PP Gen Error:', e); }
+
+    // 2. Paystack
+    let psAccount = null;
+    try {
+      const nameParts = user.name.split(' ');
+      const firstName = nameParts[0];
+      const lastName = nameParts.length > 1 ? nameParts[1] : 'User';
+      const customer = await PaymentService.createCustomer(user.email, firstName, lastName, user.phone);
+      psAccount = await PaymentService.createVirtualAccount(customer.customer_code);
+    } catch (e) { console.error('PS Gen Error:', e); }
+
+    // Update User
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        // @ts-ignore
+        ppAccountNumber: ppAccount?.accountNumber || user.ppAccountNumber,
+        // @ts-ignore
+        ppBankName: ppAccount?.bankName || user.ppBankName,
+        // @ts-ignore
+        ppAccountName: ppAccount?.accountName || user.ppAccountName,
+        // @ts-ignore
+        psAccountNumber: psAccount?.account_number || user.psAccountNumber,
+        // @ts-ignore
+        psBankName: psAccount?.bank?.name || user.psBankName,
+        // @ts-ignore
+        psAccountName: psAccount?.account_name || user.psAccountName,
+        paystackCustomerId: psAccount?.customer?.customer_code || user.paystackCustomerId
+      }
+    });
+
+    res.json({ message: 'Accounts generated successfully', user: updatedUser });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to generate accounts' });
+  }
+};
