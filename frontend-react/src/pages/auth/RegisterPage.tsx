@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { WelcomeAnimation } from '@/components/auth/WelcomeAnimation'
-import { User, Mail, Phone, Lock, Eye, EyeOff, ShieldCheck } from 'lucide-react'
+import { User, Mail, Phone, Lock, Eye, EyeOff, ShieldCheck, Home } from 'lucide-react'
 
 export function RegisterPage() {
   const navigate = useNavigate()
@@ -52,6 +52,15 @@ export function RegisterPage() {
       </AnimatePresence>
 
       <main className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-brand-midnight">
+        <div className="absolute top-8 left-8 z-20">
+          <button 
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-brand-silver/50 hover:text-white hover:border-brand-cyan/30 transition-all text-xs font-black uppercase tracking-widest"
+          >
+            <Home size={14} />
+            Home
+          </button>
+        </div>
         {/* Background orbs */}
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-brand-royal/20 rounded-full blur-[100px] pointer-events-none" />
         <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-brand-cyan/10 rounded-full blur-[100px] pointer-events-none" />

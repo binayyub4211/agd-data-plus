@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
-import { Mail, Lock, Eye, EyeOff, ShieldCheck, ArrowRight } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, ShieldCheck, ArrowRight, Home } from 'lucide-react'
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -36,6 +36,15 @@ export function LoginPage() {
 
   return (
     <main className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-brand-midnight">
+      <div className="absolute top-8 left-8 z-20">
+        <button 
+          onClick={() => navigate('/')}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-brand-silver/50 hover:text-white hover:border-brand-cyan/30 transition-all text-xs font-black uppercase tracking-widest"
+        >
+          <Home size={14} />
+          Home
+        </button>
+      </div>
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-brand-royal/20 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-brand-cyan/10 rounded-full blur-[100px] pointer-events-none" />
 

@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Home, Gift, User, ShieldAlert, History } from 'lucide-react'
+import { Home, Gift, User, ShieldAlert, History, Smartphone } from 'lucide-react'
 
 export function BottomNav() {
   const location = useLocation()
@@ -9,16 +9,21 @@ export function BottomNav() {
   const isAdmin = user?.role === 'ADMIN'
 
   const navItems = [
-    { path: '/dashboard', label: 'Home', icon: Home },
-    { path: '/referrals', label: 'Earn', icon: Gift },
+    { path: '/',          label: 'Home',    icon: Home },
+    { path: '/dashboard', label: 'App',     icon: Smartphone },
     { path: '/history',   label: 'History', icon: History },
+    { path: '/promo',     label: 'End',     icon: Gift }, // Kept for future promotions
   ]
 
   if (isAdmin) {
     navItems.push({ path: '/admin', label: 'Admin', icon: ShieldAlert })
   }
 
-  // Only show on smaller screens (hidden on md and up)
+  // Hide on desktop landing page (md:hidden handles desktop generally)
+  // But also hide on landing page even on mobile if the user wants?
+  // The user says: "footer should not appear on the desktop landing page" -> already true via md:hidden
+  // "When a user logs in, the footer should appear" -> already true via current logic.
+  
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 px-6 pb-6 pt-2 bg-gradient-to-t from-brand-midnight via-brand-midnight/90 to-transparent">
       <div className="bg-[#0D1323]/80 backdrop-blur-2xl border border-brand-royal/20 rounded-2xl h-16 flex items-center justify-around px-2 shadow-[0_-10px_40px_rgba(0,0,0,0.4)]">

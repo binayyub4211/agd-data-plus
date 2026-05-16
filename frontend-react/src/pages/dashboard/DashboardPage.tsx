@@ -125,7 +125,7 @@ export function DashboardPage() {
       {/* Top Nav */}
       <header className="sticky top-0 z-40 border-b border-brand-royal/10 bg-brand-midnight/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/dashboard')}>
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
             {user?.profilePicture ? (
               <div className="w-10 h-10 rounded-xl overflow-hidden border border-brand-royal/20">
                 <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />

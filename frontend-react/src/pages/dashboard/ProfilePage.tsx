@@ -41,7 +41,7 @@ export function ProfilePage() {
       <header className="sticky top-0 z-40 border-b border-brand-royal/10 bg-brand-midnight/80 backdrop-blur-xl">
         <div className="max-w-2xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <button onClick={() => navigate('/dashboard')} className="p-2 hover:bg-white/5 rounded-xl transition-colors">
+            <button onClick={() => navigate('/')} className="p-2 hover:bg-white/5 rounded-xl transition-colors">
               <ArrowLeft size={20} className="text-brand-silver/50" />
             </button>
             <h1 className="font-black text-xs uppercase tracking-[0.3em] text-white">Your Profile</h1>
