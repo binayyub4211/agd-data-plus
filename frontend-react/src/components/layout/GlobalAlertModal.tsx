@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldAlert, X } from 'lucide-react';
-import axios from 'axios';
+import api from '@/lib/api';
 
 interface GlobalAlert {
   id: string;
@@ -19,12 +19,7 @@ export function GlobalAlertModal() {
   useEffect(() => {
     const fetchAlert = async () => {
       try {
-        const token = localStorage.getItem('token');
-        if (!token) return;
-
-        const res = await axios.get('http://localhost:5000/api/notifications/alert/active', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const res = await api.get('/notifications/alert/active');
 
         const activeAlert = res.data.alert;
         if (activeAlert) {
