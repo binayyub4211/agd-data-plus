@@ -46,6 +46,11 @@ export class VtuEngine {
     } catch (primaryError: any) {
       console.warn(`[VtuEngine] Primary Provider (CheapDataHub) failed for Airtime. Initiating FAILOVER to VTpass...`);
       
+      // Temporarily disabling VTpass failover because it is using a dummy mock that returns Success!
+      // This forces the backend to instantly catch CheapDataHub errors and refund the user.
+      throw new Error(`Primary Provider (CheapDataHub) failed: ${primaryError.message}. (VTpass failover disabled)`);
+      
+      /*
       try {
         // 2. Failover: VTpass
         const response = await this.vtpass.buyAirtime(request);
@@ -54,6 +59,7 @@ export class VtuEngine {
         console.error(`[VtuEngine] CRITICAL: Both providers failed for AIRTIME.`);
         throw new Error('Airtime purchase failed across all providers.');
       }
+      */
     }
   }
 
@@ -75,6 +81,11 @@ export class VtuEngine {
     } catch (primaryError: any) {
       console.warn(`[VtuEngine] Primary Provider (CheapDataHub) failed. Initiating FAILOVER to VTpass... Reason: ${primaryError.message}`);
       
+      // Temporarily disabling VTpass failover because it is using a dummy mock that returns Success!
+      // This forces the backend to instantly catch CheapDataHub errors and refund the user.
+      throw new Error(`Primary Provider (CheapDataHub) failed: ${primaryError.message}. (VTpass failover disabled)`);
+
+      /*
       try {
         // 2. Failover: VTpass
         const response = await this.vtpass.buyData(request);
@@ -83,6 +94,7 @@ export class VtuEngine {
         console.error(`[VtuEngine] CRITICAL: Both Primary and Failover providers failed for DATA.`);
         throw new Error('Transaction failed across all providers.');
       }
+      */
     }
   }
 
