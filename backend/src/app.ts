@@ -15,8 +15,14 @@ const app = express();
 // Trust Railway proxy
 app.set('trust proxy', 1);
 
-app.post('/api/webhooks/paystack', express.json(), paystackWebhook);
-app.post('/api/webhooks/paymentpoint', express.json(), paystackWebhook);
+const webhookJsonParser = express.json({
+  verify: (req: any, res, buf) => {
+    req.rawBody = buf;
+  }
+});
+
+app.post('/api/webhooks/paystack', webhookJsonParser, paystackWebhook);
+app.post('/api/webhooks/paymentpoint', webhookJsonParser, paystackWebhook);
 
 // Security Headers & CSP
 app.use(helmet());

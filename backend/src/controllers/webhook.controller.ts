@@ -11,9 +11,11 @@ export const paystackWebhook = async (req: Request, res: Response) => {
   // 1. Handle PaymentPoint Webhook
   if (ppSignature) {
     const ppSecret = config.PAYMENTPOINT_SECRET_KEY;
+    // @ts-ignore
+    const rawBody = req.rawBody || JSON.stringify(req.body);
     const ppHash = crypto
       .createHmac('sha256', ppSecret)
-      .update(JSON.stringify(req.body))
+      .update(rawBody)
       .digest('hex');
 
     if (ppHash === ppSignature) {
@@ -24,9 +26,11 @@ export const paystackWebhook = async (req: Request, res: Response) => {
   // 2. Handle Paystack Webhook
   if (paystackSignature) {
     const paystackSecret = config.PAYSTACK_SECRET_KEY;
+    // @ts-ignore
+    const rawBody = req.rawBody || JSON.stringify(req.body);
     const paystackHash = crypto
       .createHmac('sha512', paystackSecret)
-      .update(JSON.stringify(req.body))
+      .update(rawBody)
       .digest('hex');
 
     if (paystackHash === paystackSignature) {
