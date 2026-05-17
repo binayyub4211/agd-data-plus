@@ -1,24 +1,7 @@
-import nodemailer from 'nodemailer';
-import { config } from '../config/config';
+import axios from 'axios';
 
-const SENDER_EMAIL = process.env.SMTP_FROM || config.SMTP_USER || 'noreply@agddataplus.com.ng';
-
-const transporter = nodemailer.createTransport({
-  host: config.SMTP_HOST,
-  port: Number(config.SMTP_PORT),
-  secure: Number(config.SMTP_PORT) === 465,
-  auth: {
-    user: config.SMTP_USER,
-    pass: config.SMTP_PASS,
-  },
-  // Add these for better debugging and reliability
-  connectionTimeout: 10000, // 10 seconds timeout
-  greetingTimeout: 10000,
-  socketTimeout: 15000,
-  tls: {
-    rejectUnauthorized: false // Helps with local certificate issues
-  }
-});
+const SENDER_EMAIL = process.env.SMTP_FROM || 'noreply@agddataplus.com.ng';
+const BREVO_API_KEY = process.env.BREVO_API_KEY;
 
 export class EmailService {
   private static readonly BRAND_NAME = 'AGD Data Plus';
@@ -34,7 +17,7 @@ export class EmailService {
           ${content}
         </div>
         <div style="text-align: center; padding: 20px; color: #888; font-size: 12px;">
-          <p>© 2026 ${this.BRAND_NAME}. All rights reserved.</p>
+          <p>&copy; 2026 ${this.BRAND_NAME}. All rights reserved.</p>
           <p>Powered by Speed. Secured by Trust.</p>
         </div>
       </div>
@@ -48,58 +31,63 @@ export class EmailService {
       <div style="margin: 30px 0; text-align: center;">
         <a href="${process.env.FRONTEND_URL}/dashboard" style="background-color: ${this.PRIMARY_COLOR}; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Go to Dashboard</a>
       </div>
-      <p style="color: #555;">Start funding your wallet to enjoy the best rates on Data, Airtime, and more!</p>
+      <p style="color: #555;">Start funding your wallet to enjoy the best rates on Data, Airtime, and more.</p>
     `);
-
-    return this.sendEmail(email, `Welcome to ${this.BRAND_NAME}! 🚀`, html);
+    return this.sendEmail(email, `Welcome to ${this.BRAND_NAME}`, html);
   }
 
   static async sendFundingNotification(email: string, amount: number, balance: number) {
     const html = this.getBaseTemplate(`
-      <h2 style="color: #333;">Wallet Funded Successfully! ✅</h2>
+      <h2 style="color: #333;">Wallet Funded Successfully</h2>
       <p style="color: #555;">Your wallet has been credited with:</p>
       <div style="font-size: 24px; font-weight: bold; color: ${this.PRIMARY_COLOR}; margin: 20px 0;">
-        ₦${amount.toLocaleString()}
+        &#8358;${amount.toLocaleString()}
       </div>
-      <p style="color: #555;">New Wallet Balance: <strong>₦${balance.toLocaleString()}</strong></p>
+      <p style="color: #555;">New Wallet Balance: <strong>&#8358;${balance.toLocaleString()}</strong></p>
       <p style="color: #888; font-size: 12px; margin-top: 20px;">If you did not make this transaction, please contact support immediately.</p>
     `);
-
-    return this.sendEmail(email, `Wallet Credit: ₦${amount.toLocaleString()} 💰`, html);
+    return this.sendEmail(email, `Wallet Credit: NGN ${amount.toLocaleString()}`, html);
   }
 
   static async sendPasswordResetEmail(email: string, token: string) {
     const resetLink = `${process.env.FRONTEND_URL}/auth/reset-password?token=${token}`;
     const html = this.getBaseTemplate(`
       <h2 style="color: #333;">Password Reset Request</h2>
-      <p style="color: #555; line-height: 1.6;">We received a request to reset your password. Click the button below to choose a new one. This link will expire in 1 hour.</p>
+      <p style="color: #555; line-height: 1.6;">We received a request to reset your password. Click the button below to set a new one. This link expires in 1 hour.</p>
       <div style="margin: 30px 0; text-align: center;">
         <a href="${resetLink}" style="background-color: ${this.PRIMARY_COLOR}; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Reset Password</a>
       </div>
-      <p style="color: #888; font-size: 12px;">If you didn't request this, you can safely ignore this email.</p>
+      <p style="color: #888; font-size: 12px;">If you did not request this, you can safely ignore this email.</p>
     `);
-
     return this.sendEmail(email, `Reset Your Password - ${this.BRAND_NAME}`, html);
   }
 
   private static async sendEmail(to: string, subject: string, html: string) {
-    if (!config.SMTP_HOST || !config.SMTP_USER) {
-      console.warn('Email service skipped: SMTP configuration missing');
+    if (!BREVO_API_KEY) {
+      console.warn('Email service skipped: BREVO_API_KEY not set');
       return;
     }
 
     try {
-      const info = await transporter.sendMail({
-        from: `"${this.BRAND_NAME}" <${SENDER_EMAIL}>`,
-        to,
-        subject,
-        html,
-      });
-      console.log('Email sent:', info.messageId);
-      return info;
-    } catch (error) {
-      console.error('Email Delivery Error:', error);
-      // We don't throw here to avoid crashing the main process
+      const response = await axios.post(
+        'https://api.brevo.com/v3/smtp/email',
+        {
+          sender: { name: this.BRAND_NAME, email: SENDER_EMAIL },
+          to: [{ email: to }],
+          subject,
+          htmlContent: html,
+        },
+        {
+          headers: {
+            'api-key': BREVO_API_KEY,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      console.log('Email sent via Brevo API:', response.data.messageId);
+      return response.data;
+    } catch (error: any) {
+      console.error('Email Delivery Error:', error.response?.data || error.message);
     }
   }
 }
