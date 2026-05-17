@@ -35,6 +35,13 @@ export class VtuEngine {
       const response = await this.cheapDataHub.buyAirtime(request);
       const newBalance = await this.cheapDataHub.checkBalance();
       const costPrice = (oldBalance > 0 && newBalance >= 0) ? (oldBalance - newBalance) : null;
+      
+      // If costPrice is exactly 0, CheapDataHub silently refunded it
+      if (costPrice === 0) {
+        console.error(`[VtuEngine] CheapDataHub silently refunded Airtime! Balances matched: ${oldBalance}`);
+        throw new Error('Provider rejected or refunded transaction silently');
+      }
+
       return { success: true, providerUsed: this.cheapDataHub.name, response, costPrice };
     } catch (primaryError: any) {
       console.warn(`[VtuEngine] Primary Provider (CheapDataHub) failed for Airtime. Initiating FAILOVER to VTpass...`);
@@ -57,6 +64,13 @@ export class VtuEngine {
       const response = await this.cheapDataHub.buyData(request);
       const newBalance = await this.cheapDataHub.checkBalance();
       const costPrice = (oldBalance > 0 && newBalance >= 0) ? (oldBalance - newBalance) : null;
+      
+      // If costPrice is exactly 0, CheapDataHub silently refunded it
+      if (costPrice === 0) {
+        console.error(`[VtuEngine] CheapDataHub silently refunded Data! Balances matched: ${oldBalance}`);
+        throw new Error('Provider rejected or refunded transaction silently');
+      }
+
       return { success: true, providerUsed: this.cheapDataHub.name, response, costPrice };
     } catch (primaryError: any) {
       console.warn(`[VtuEngine] Primary Provider (CheapDataHub) failed. Initiating FAILOVER to VTpass... Reason: ${primaryError.message}`);
