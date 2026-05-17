@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../utils/prisma';
 import { Provider } from '../types/prisma';
 import { PaymentPointService } from '../services/PaymentPointService';
+import { EmailService } from '../services/email.service';
 
 export const getAdminStats = async (req: Request, res: Response) => {
   try {
@@ -238,7 +239,6 @@ export const broadcastNotification = async (req: Request, res: Response) => {
 
     // 3. Optionally blast emails
     if (sendEmail) {
-      const { EmailService } = require('../services/email.service');
       const emailPromises = users.map(user => 
         EmailService.sendAdminBroadcastEmail(user.email, title, message).catch((e: any) => console.error(e))
       );
