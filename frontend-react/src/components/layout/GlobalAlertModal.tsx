@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldAlert, X } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import api from '@/lib/api';
 
 interface GlobalAlert {
@@ -15,6 +16,7 @@ interface GlobalAlert {
 export function GlobalAlertModal() {
   const [alert, setAlert] = useState<GlobalAlert | null>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
     const fetchAlert = async () => {
@@ -28,7 +30,12 @@ export function GlobalAlertModal() {
           if (dismissedAlertId !== activeAlert.id) {
             setAlert(activeAlert);
             setIsVisible(true);
+          } else {
+            setIsVisible(false);
           }
+        } else {
+          setIsVisible(false);
+          setAlert(null);
         }
       } catch (error) {
         console.error('Failed to fetch system alert', error);
@@ -36,7 +43,7 @@ export function GlobalAlertModal() {
     };
 
     fetchAlert();
-  }, []);
+  }, [location.pathname]);
 
   const handleDismiss = () => {
     if (alert) {

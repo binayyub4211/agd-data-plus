@@ -4,9 +4,10 @@ import * as notificationController from '../controllers/notification.controller'
 
 const router = Router();
 
+router.get('/alert/active', notificationController.getActiveSystemAlert);
+
 router.use(protect);
 
-router.get('/alert/active', notificationController.getActiveSystemAlert);
 router.get('/', notificationController.getNotifications);
 router.patch('/:id/read', notificationController.markAsRead);
 router.patch('/read-all', notificationController.markAllAsRead);
