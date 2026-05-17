@@ -111,7 +111,7 @@ export const updateEmail = async (req: Request, res: Response) => {
   }
 };
 
-import { PaymentPointService } from '../services/paymentpoint.service';
+import { PaymentPointService } from '../services/PaymentPointService';
 import { PaymentService } from '../services/payment.service';
 
 export const generateAccounts = async (req: Request, res: Response) => {
