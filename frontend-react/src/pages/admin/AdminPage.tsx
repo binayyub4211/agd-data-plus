@@ -21,7 +21,7 @@ export function AdminPage() {
   const [creditModal, setCreditModal] = useState<{ isOpen: boolean, userId: string, name: string }>({ isOpen: false, userId: '', name: '' })
   const [creditAmount, setCreditAmount] = useState('')
   const [isRegenerating, setIsRegenerating] = useState(false)
-  const [isBroadcastOpen, setIsBroadcastOpen] = useState(false)
+  const [broadcastState, setBroadcastState] = useState<{ isOpen: boolean, targetUserId?: string, targetUserName?: string }>({ isOpen: false })
 
   const fetchData = async () => {
     try {
@@ -63,6 +63,19 @@ export function AdminPage() {
       fetchData()
     } catch (err: any) {
       toast.error(err.response?.data?.error ?? 'Action failed')
+    }
+  }
+
+  const handleDeleteUser = async (userId: string, name: string) => {
+    if (!window.confirm(`Are you sure you want to completely delete ${name}? This action cannot be undone.`)) return
+    
+    try {
+      const token = localStorage.getItem('token')
+      await api.delete(`/admin/users/${userId}`, { headers: { Authorization: `Bearer ${token}` } })
+      toast.success('User deleted successfully')
+      fetchData()
+    } catch (err: any) {
+      toast.error(err.response?.data?.error ?? 'Failed to delete user')
     }
   }
 
@@ -130,7 +143,7 @@ export function AdminPage() {
             </Button>
             <Button 
               size="sm" 
-              onClick={() => setIsBroadcastOpen(true)} 
+              onClick={() => setBroadcastState({ isOpen: true })} 
               className="text-xs uppercase tracking-widest bg-brand-royal hover:bg-brand-royal/80 text-white font-black flex items-center gap-2"
             >
               <Megaphone size={14} />
@@ -228,12 +241,26 @@ export function AdminPage() {
                                 Gen PP
                               </button>
                             )}
+                              <button 
+                                onClick={() => setBroadcastState({ isOpen: true, targetUserId: user.id, targetUserName: user.name })}
+                                className="px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-500 text-[10px] font-black uppercase tracking-widest hover:bg-blue-500 hover:text-white transition-all"
+                              >
+                                Message
+                              </button>
                             <button 
                               onClick={() => setCreditModal({ isOpen: true, userId: user.id, name: user.name })}
                               className="px-3 py-1.5 rounded-lg bg-brand-cyan/10 border border-brand-cyan/20 text-brand-cyan text-[10px] font-black uppercase tracking-widest hover:bg-brand-cyan hover:text-brand-midnight transition-all"
                             >
                               Modify
                             </button>
+                            {user.role !== 'ADMIN' && (
+                              <button 
+                                onClick={() => handleDeleteUser(user.id, user.name)}
+                                className="px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all"
+                              >
+                                Delete
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -312,8 +339,10 @@ export function AdminPage() {
       </AnimatePresence>
 
       <BroadcastModal 
-        isOpen={isBroadcastOpen} 
-        onClose={() => setIsBroadcastOpen(false)} 
+        isOpen={broadcastState.isOpen} 
+        onClose={() => setBroadcastState({ isOpen: false })} 
+        targetUserId={broadcastState.targetUserId}
+        targetUserName={broadcastState.targetUserName}
       />
     </div>
   )

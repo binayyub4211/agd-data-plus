@@ -14,16 +14,57 @@ export function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showWelcome, setShowWelcome] = useState(false)
+  const [passwordStrength, setPasswordStrength] = useState({ score: 0, color: 'bg-brand-silver/20', text: '' })
   const [registeredName, setRegisteredName] = useState('')
   const [formData, setFormData] = useState({
     name: '', email: '', phone: '', password: '', referralCode: '',
   })
 
-  const update = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setFormData((prev) => ({ ...prev, [field]: e.target.value }))
+  const validatePassword = (pass: string) => {
+    let score = 0;
+    if (pass.length >= 8) score++;
+    if (/[A-Za-z]/.test(pass)) score++;
+    if (/[0-9]/.test(pass)) score++;
+    if (/[^A-Za-z0-9]/.test(pass)) score++;
+
+    let color = 'bg-brand-silver/20';
+    let text = '';
+    if (pass.length === 0) { color = 'bg-brand-silver/20'; text = ''; }
+    else if (score <= 2) { color = 'bg-red-500'; text = 'Weak'; }
+    else if (score === 3) { color = 'bg-yellow-500'; text = 'Good'; }
+    else if (score === 4) { color = 'bg-green-500'; text = 'Strong'; }
+
+    setPasswordStrength({ score, color, text });
+  };
+
+  const update = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value;
+    if (field === 'phone' && val.length > 0 && !val.startsWith('+234')) {
+      if (val.startsWith('0')) {
+        val = '+234' + val.substring(1);
+      } else if (!val.startsWith('+')) {
+        val = '+234' + val;
+      }
+    }
+    
+    setFormData((prev) => ({ ...prev, [field]: val }))
+    if (field === 'password') validatePassword(val);
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Guided Validations
+    if (!formData.email.includes('@')) {
+      return toast.error('Invalid email format—please include an @ symbol.');
+    }
+    if (!formData.phone.startsWith('+234')) {
+      return toast.error('Phone number must start with +234');
+    }
+    if (passwordStrength.score < 3) {
+      return toast.error('Password is too weak. Please include letters, numbers, and special characters.');
+    }
+
     setLoading(true)
     try {
       const res = await api.post('/auth/register', formData)
@@ -102,7 +143,7 @@ export function RegisterPage() {
 
               <div className="relative">
                 <Phone size={15} className="absolute left-4 top-1/2 translate-y-3 text-brand-silver/30 pointer-events-none" />
-                <Input id="phone" label="Phone Number" placeholder="08012345678" required
+                <Input id="phone" label="Phone Number" placeholder="+2348012345678" required
                   value={formData.phone} onChange={update('phone')}
                   className="pl-10" />
               </div>
@@ -127,6 +168,21 @@ export function RegisterPage() {
                   {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
+              
+              {/* Password Strength Indicator */}
+              {formData.password.length > 0 && (
+                <div className="mt-2">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs text-brand-silver/50">Password Strength</span>
+                    <span className={`text-xs font-bold ${passwordStrength.color.replace('bg-', 'text-')}`}>
+                      {passwordStrength.text}
+                    </span>
+                  </div>
+                  <div className="flex gap-1 h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                    <div className={`h-full ${passwordStrength.color} transition-all duration-300`} style={{ width: `${(passwordStrength.score / 4) * 100}%` }} />
+                  </div>
+                </div>
+              )}
 
               <div className="relative">
                 <ShieldCheck size={15} className="absolute left-4 top-1/2 translate-y-3 text-brand-silver/30 pointer-events-none" />

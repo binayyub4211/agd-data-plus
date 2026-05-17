@@ -10,9 +10,11 @@ import { X, Send, Mail, Bell, ShieldAlert, CheckCircle2 } from 'lucide-react'
 interface BroadcastModalProps {
   isOpen: boolean
   onClose: () => void
+  targetUserId?: string
+  targetUserName?: string
 }
 
-export function BroadcastModal({ isOpen, onClose }: BroadcastModalProps) {
+export function BroadcastModal({ isOpen, onClose, targetUserId, targetUserName }: BroadcastModalProps) {
   const [title, setTitle] = useState('')
   const [message, setMessage] = useState('')
   const [type, setType] = useState('INFO')
@@ -27,9 +29,10 @@ export function BroadcastModal({ isOpen, onClose }: BroadcastModalProps) {
         title,
         message,
         type,
-        sendEmail
+        sendEmail,
+        targetUserId
       })
-      toast.success('Broadcast sent successfully!')
+      toast.success(targetUserId ? 'Message sent successfully!' : 'Broadcast sent successfully!')
       onClose()
       // Reset
       setTitle('')
@@ -69,8 +72,8 @@ export function BroadcastModal({ isOpen, onClose }: BroadcastModalProps) {
                   <ShieldAlert size={24} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-white">Global Broadcast</h3>
-                  <p className="text-xs text-brand-silver/30 font-medium uppercase tracking-widest">Master Communication Hub</p>
+                  <h3 className="text-xl font-black text-white">{targetUserId ? 'Direct Message' : 'Global Broadcast'}</h3>
+                  <p className="text-xs text-brand-silver/30 font-medium uppercase tracking-widest">{targetUserId ? `To: ${targetUserName}` : 'Master Communication Hub'}</p>
                 </div>
               </div>
               <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-xl text-brand-silver/20 hover:text-white transition-colors">
@@ -141,7 +144,7 @@ export function BroadcastModal({ isOpen, onClose }: BroadcastModalProps) {
                     onClick={() => setStep('confirm')}
                     disabled={!title || !message}
                   >
-                    Proceed to Blast
+                    Proceed to {targetUserId ? 'Send' : 'Blast'}
                   </Button>
                 </>
               ) : (
@@ -152,7 +155,7 @@ export function BroadcastModal({ isOpen, onClose }: BroadcastModalProps) {
                     </div>
                     <h4 className="text-lg font-black text-white">Critical Confirmation</h4>
                     <p className="text-xs text-brand-silver/40 mt-2 leading-relaxed">
-                      You are about to send a notification to <span className="text-white font-bold">ALL</span> registered users. {sendEmail && 'This will also trigger an email blast.'} This action cannot be undone.
+                      You are about to send a notification to <span className="text-white font-bold">{targetUserId ? targetUserName : 'ALL'}</span> registered users. {sendEmail && 'This will also trigger an email blast.'} This action cannot be undone.
                     </p>
                   </div>
 
@@ -177,7 +180,7 @@ export function BroadcastModal({ isOpen, onClose }: BroadcastModalProps) {
                       loading={loading}
                     >
                       <Send size={16} className="mr-2" />
-                      Final Blast
+                      Final {targetUserId ? 'Send' : 'Blast'}
                     </Button>
                   </div>
                 </div>

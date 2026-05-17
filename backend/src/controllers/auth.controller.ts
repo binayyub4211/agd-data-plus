@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { authenticator } from 'otplib';
 import { z } from 'zod';
 import { config } from '../config/config';
@@ -247,6 +248,82 @@ export const refresh = async (req: Request, res: Response) => {
     res.json({ token, refreshToken: newRefreshToken });
   } catch (error) {
     res.status(401).json({ error: 'Invalid refresh token' });
+  }
+};
+
+export const forgotPassword = async (req: Request, res: Response) => {
+  try {
+    const { email } = z.object({ email: z.string().email() }).parse(req.body);
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      // Return success even if user not found for security (prevent email enumeration)
+      return res.json({ message: 'If that email exists, a reset link has been sent.' });
+    }
+
+    // Generate a secure reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        resetToken,
+        resetTokenExpiry,
+      },
+    });
+
+    // Send Email
+    await EmailService.sendPasswordResetEmail(user.email, resetToken);
+
+    res.json({ message: 'If that email exists, a reset link has been sent.' });
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors });
+    }
+    console.error('Forgot Password Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const resetPassword = async (req: Request, res: Response) => {
+  try {
+    const { token, password } = z.object({
+      token: z.string().min(1),
+      password: z.string().min(8)
+    }).parse(req.body);
+
+    const user = await prisma.user.findFirst({
+      where: {
+        resetToken: token,
+        resetTokenExpiry: {
+          gt: new Date(), // Token must not be expired
+        },
+      },
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid or expired reset token.' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash,
+        resetToken: null,
+        resetTokenExpiry: null,
+      },
+    });
+
+    res.json({ message: 'Password has been reset successfully. You can now log in.' });
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors });
+    }
+    console.error('Reset Password Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 

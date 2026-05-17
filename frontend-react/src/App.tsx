@@ -3,6 +3,8 @@ import { ClientLayout } from '@/components/layout/ClientLayout'
 import { HomePage } from '@/pages/HomePage'
 import { RegisterPage } from '@/pages/auth/RegisterPage'
 import { LoginPage } from '@/pages/auth/LoginPage'
+import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage'
+import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage'
 import { DashboardPage } from '@/pages/dashboard/DashboardPage'
 import { AdminPage } from '@/pages/admin/AdminPage'
 import { ReferralsPage } from '@/pages/dashboard/ReferralsPage'
@@ -19,6 +21,8 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/auth/register" element={<RegisterPage />} />
           <Route path="/auth/login" element={<LoginPage />} />
+          <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
           <Route
             path="/dashboard"
             element={

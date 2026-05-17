@@ -8,10 +8,13 @@ export class EmailService {
   private static readonly PRIMARY_COLOR = '#1A4FDB';
 
   private static getBaseTemplate(content: string) {
+    const logoUrl = 'https://agddataplus.com.ng/logo.png'; // Placeholder for live logo
+
     return `
       <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f9f9f9; padding: 20px; border-radius: 10px;">
         <div style="text-align: center; padding: 20px 0;">
-          <h1 style="color: ${this.PRIMARY_COLOR}; margin: 0;">${this.BRAND_NAME}</h1>
+          <img src="${logoUrl}" alt="${this.BRAND_NAME}" style="max-height: 60px; margin-bottom: 15px; display: block; margin-left: auto; margin-right: auto;" onerror="this.style.display='none'" />
+          <h1 style="color: ${this.PRIMARY_COLOR}; margin: 0; font-size: 24px;">${this.BRAND_NAME}</h1>
         </div>
         <div style="background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
           ${content}
@@ -60,6 +63,17 @@ export class EmailService {
       <p style="color: #888; font-size: 12px;">If you did not request this, you can safely ignore this email.</p>
     `);
     return this.sendEmail(email, `Reset Your Password - ${this.BRAND_NAME}`, html);
+  }
+
+  static async sendAdminBroadcastEmail(email: string, subject: string, message: string) {
+    const html = this.getBaseTemplate(`
+      <h2 style="color: #333;">Notification from Admin</h2>
+      <p style="color: #555; line-height: 1.6; white-space: pre-wrap;">${message}</p>
+      <div style="margin: 30px 0; text-align: center;">
+        <a href="${process.env.FRONTEND_URL}/dashboard" style="background-color: ${this.PRIMARY_COLOR}; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Go to Dashboard</a>
+      </div>
+    `);
+    return this.sendEmail(email, subject, html);
   }
 
   private static async sendEmail(to: string, subject: string, html: string) {

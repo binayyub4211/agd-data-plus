@@ -87,7 +87,7 @@ export function LoginPage() {
                 {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
               </button>
               <div className="flex justify-end mt-2">
-                <a href="#" className="text-xs text-brand-cyan/70 hover:text-brand-cyan transition-colors">Forgot password?</a>
+                <Link to="/auth/forgot-password" className="text-xs text-brand-cyan/70 hover:text-brand-cyan transition-colors">Forgot password?</Link>
               </div>
             </div>
 

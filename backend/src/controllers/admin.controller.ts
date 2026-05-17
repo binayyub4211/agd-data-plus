@@ -207,18 +207,24 @@ export const generateSingleAccount = async (req: Request, res: Response) => {
 
 export const broadcastNotification = async (req: Request, res: Response) => {
   try {
-    const { title, message, type, sendEmail } = req.body;
+    const { title, message, type, sendEmail, targetUserId } = req.body;
 
     if (!title || !message) {
       return res.status(400).json({ error: 'Title and message are required' });
     }
 
-    // 1. Get all users
-    const users = await prisma.user.findMany({
-      select: { id: true, email: true }
-    });
+    let users = [];
 
-    // 2. Create in-app notifications for everyone
+    // 1. Get users based on target
+    if (targetUserId) {
+      const user = await prisma.user.findUnique({ where: { id: targetUserId }, select: { id: true, email: true } });
+      if (!user) return res.status(404).json({ error: 'Target user not found' });
+      users.push(user);
+    } else {
+      users = await prisma.user.findMany({ select: { id: true, email: true } });
+    }
+
+    // 2. Create in-app notifications
     const notifications = users.map(user => ({
       userId: user.id,
       title,
@@ -232,23 +238,47 @@ export const broadcastNotification = async (req: Request, res: Response) => {
 
     // 3. Optionally blast emails
     if (sendEmail) {
-      const emailService = require('../services/EmailService').EmailService;
-      // Map over all users and send emails asynchronously
-      // Warning: For >10,000 users, use a dedicated queue (like BullMQ)
+      const { EmailService } = require('../services/email.service');
       const emailPromises = users.map(user => 
-        emailService.sendAdminBroadcast(user.email, title, message).catch((e: any) => console.error(e))
+        EmailService.sendAdminBroadcastEmail(user.email, title, message).catch((e: any) => console.error(e))
       );
       
-      // We don't await all of them so we don't block the response, 
-      // but in a production scale app, this should be a background job.
       Promise.allSettled(emailPromises);
     }
 
     res.json({ 
       success: true, 
-      message: `Broadcast sent to ${users.length} users successfully.` 
+      message: targetUserId ? 'Message sent successfully.' : `Broadcast sent to ${users.length} users successfully.` 
     });
   } catch (error: any) {
-    res.status(500).json({ error: 'Failed to send broadcast' });
+    console.error('Broadcast Error:', error);
+    res.status(500).json({ error: 'Failed to send notification' });
+  }
+};
+
+export const deleteUser = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    // Check if user exists
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Admins shouldn't easily delete other admins here, but for now we just delete
+    if (user.role === 'ADMIN') {
+      return res.status(403).json({ error: 'Cannot delete an ADMIN user.' });
+    }
+
+    // Prisma Cascade delete will handle Wallets, Transactions, AuditLogs, Notifications
+    await prisma.user.delete({
+      where: { id }
+    });
+
+    res.json({ success: true, message: 'User deleted successfully' });
+  } catch (error: any) {
+    console.error('Delete User Error:', error);
+    res.status(500).json({ error: 'Failed to delete user' });
   }
 };

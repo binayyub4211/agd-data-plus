@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getAdminStats, getAllUsers, manualCreditUser, generateMissingAccounts, generateSingleAccount, broadcastNotification } from '../controllers/admin.controller';
+import { getAdminStats, getAllUsers, manualCreditUser, generateMissingAccounts, generateSingleAccount, broadcastNotification, deleteUser } from '../controllers/admin.controller';
 import { protect } from '../middleware/auth.middleware';
 import { isAdmin } from '../middleware/admin.middleware';
 
@@ -11,6 +11,7 @@ router.use(isAdmin);
 
 router.get('/stats', getAdminStats);
 router.get('/users', getAllUsers);
+router.delete('/users/:id', deleteUser);
 router.post('/users/credit', manualCreditUser);
 router.post('/accounts/regenerate', generateMissingAccounts);
 router.post('/accounts/generate/:userId', generateSingleAccount);
