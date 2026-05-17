@@ -2,7 +2,8 @@ import axios from 'axios';
 
 const SENDER_EMAIL = process.env.SMTP_FROM || 'noreply@agddataplus.com.ng';
 const BREVO_API_KEY = process.env.BREVO_API_KEY;
-const FRONTEND_URL = process.env.FRONTEND_URL || 'https://agddataplus.com.ng';
+const envUrl = process.env.FRONTEND_URL;
+const FRONTEND_URL = (envUrl && envUrl.trim() !== '' && envUrl !== 'undefined') ? envUrl : 'https://agddataplus.com.ng';
 
 export class EmailService {
   private static readonly BRAND_NAME = 'AGD Data Plus';
