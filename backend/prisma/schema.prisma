@@ -77,6 +77,8 @@ model Transaction {
   walletId       String
   
   amount         Float
+  costPrice      Float?            // What the provider charged
+  profit         Float?            // The difference (amount - costPrice)
   status         String            @default("PENDING") // PENDING, SUCCESS, FAILED, REFUNDED
   serviceType    String            // DATA, AIRTIME, etc.
   provider       String            // CHEAP_DATA_HUB, VTPASS, etc.

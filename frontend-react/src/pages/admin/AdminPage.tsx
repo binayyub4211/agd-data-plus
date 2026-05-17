@@ -169,11 +169,17 @@ export function AdminPage() {
         </div>
 
         {/* Top Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
           <StatCard title="Total Users" value={stats?.totalUsers ?? 0} icon={Users} color="text-blue-400" />
           <StatCard title="User Liabilities" value={`₦${(stats?.totalUserBalance ?? 0).toLocaleString()}`} icon={Wallet} color="text-brand-gold" />
           <StatCard title="24h Sales" value={`₦${(stats?.dailySales?.amount ?? 0).toLocaleString()}`} icon={TrendingUp} color="text-green-400" />
-          <StatCard title="Orders (24h)" value={stats?.dailySales?.count ?? 0} icon={ArrowUpRight} color="text-brand-cyan" />
+          <StatCard title="Total Profit" value={`₦${(stats?.totalSystemProfit ?? 0).toLocaleString()}`} icon={ArrowUpRight} color="text-brand-cyan" />
+          <StatCard 
+            title="CheapData Balance" 
+            value={`₦${(stats?.providerBalances?.find((p: any) => p.provider === 'CHEAP_DATA_HUB')?.balance ?? 0).toLocaleString()}`} 
+            icon={Server} 
+            color="text-purple-400" 
+          />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

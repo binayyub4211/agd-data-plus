@@ -25,7 +25,7 @@ export const getAdminStats = async (req: Request, res: Response) => {
       include: { user: { select: { name: true, email: true } } }
     });
 
-    // 5. Sales Summary (Last 24h)
+    // 5. Sales Summary (Last 24h & Total Profit)
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const dailySales = await prisma.transaction.aggregate({
       where: {
@@ -36,11 +36,17 @@ export const getAdminStats = async (req: Request, res: Response) => {
       _count: { id: true }
     });
 
+    const totalProfits = await prisma.transaction.aggregate({
+      where: { status: 'SUCCESS' },
+      _sum: { profit: true }
+    });
+
     res.json({
       totalUsers,
       totalUserBalance,
       providerBalances,
       recentTransactions,
+      totalSystemProfit: totalProfits._sum.profit || 0,
       dailySales: {
         amount: dailySales._sum.amount || 0,
         count: dailySales._count.id || 0

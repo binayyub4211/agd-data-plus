@@ -78,12 +78,17 @@ export const purchaseService = async (req: Request, res: Response) => {
         reference: result.transaction.reference,
       });
 
-      // Update transaction status to SUCCESS
+      // Update transaction status to SUCCESS and log profits
+      const costPrice = (engineResponse as any).costPrice;
+      const profit = costPrice ? (validated.amount - costPrice) : null;
+
       await prisma.transaction.update({
         where: { id: result.transaction.id },
         data: { 
           status: TransactionStatus.SUCCESS,
-          provider: engineResponse.providerUsed as Provider 
+          provider: engineResponse.providerUsed as Provider,
+          costPrice,
+          profit
         },
       });
 
