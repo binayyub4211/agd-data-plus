@@ -2,6 +2,7 @@ import axios from 'axios';
 
 const SENDER_EMAIL = process.env.SMTP_FROM || 'noreply@agddataplus.com.ng';
 const BREVO_API_KEY = process.env.BREVO_API_KEY;
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://agddataplus.com.ng';
 
 export class EmailService {
   private static readonly BRAND_NAME = 'AGD Data Plus';
@@ -32,7 +33,7 @@ export class EmailService {
       <h2 style="color: #333;">Welcome aboard, ${name}!</h2>
       <p style="color: #555; line-height: 1.6;">We're excited to have you on <strong>${this.BRAND_NAME}</strong>. Your account is now active and ready for lightning-fast VTU services.</p>
       <div style="margin: 30px 0; text-align: center;">
-        <a href="${process.env.FRONTEND_URL}/#/dashboard" style="background-color: ${this.PRIMARY_COLOR}; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Go to Dashboard</a>
+        <a href="${FRONTEND_URL}/#/dashboard" style="background-color: ${this.PRIMARY_COLOR}; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Go to Dashboard</a>
       </div>
       <p style="color: #555;">Start funding your wallet to enjoy the best rates on Data, Airtime, and more.</p>
     `);
@@ -53,12 +54,12 @@ export class EmailService {
   }
 
   static async sendPasswordResetEmail(email: string, token: string) {
-    const resetLink = `${process.env.FRONTEND_URL}/#/auth/reset-password?token=${token}`;
+    const resetLink = `${FRONTEND_URL}/#/auth/reset-password?token=${token}`;
     const html = this.getBaseTemplate(`
       <h2 style="color: #333;">Password Reset Request</h2>
       <p style="color: #555; line-height: 1.6;">We received a request to reset your password. Click the button below to set a new one. This link expires in 1 hour.</p>
       <div style="margin: 30px 0; text-align: center;">
-        <a href="${resetLink}" style="background-color: ${this.PRIMARY_COLOR}; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Reset Password</a>
+        <a href="${resetLink}" style="background-color: ${this.PRIMARY_COLOR}; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Reset Password</a>
       </div>
       <p style="color: #888; font-size: 12px;">If you did not request this, you can safely ignore this email.</p>
     `);
@@ -70,7 +71,7 @@ export class EmailService {
       <h2 style="color: #333;">Notification from Admin</h2>
       <p style="color: #555; line-height: 1.6; white-space: pre-wrap;">${message}</p>
       <div style="margin: 30px 0; text-align: center;">
-        <a href="${process.env.FRONTEND_URL}/#/dashboard" style="background-color: ${this.PRIMARY_COLOR}; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Go to Dashboard</a>
+        <a href="${FRONTEND_URL}/#/dashboard" style="background-color: ${this.PRIMARY_COLOR}; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Go to Dashboard</a>
       </div>
     `);
     return this.sendEmail(email, subject, html);
