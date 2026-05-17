@@ -6,7 +6,8 @@ import { z } from 'zod';
 import { config } from '../config/config';
 import { prisma } from '../utils/prisma';
 import { PaymentPointService } from '../services/PaymentPointService';
-import { EmailService } from '../services/EmailService';
+import { EmailService } from '../services/email.service';
+import { PaymentService } from '../services/payment.service';
 
 // Validation Schemas
 const registerSchema = z.object({
@@ -34,8 +35,6 @@ const generateTokens = (userId: string) => {
 
   return { token, refreshToken };
 };
-
-import { EmailService } from '../services/email.service';
 
 export const register = async (req: Request, res: Response) => {
   try {

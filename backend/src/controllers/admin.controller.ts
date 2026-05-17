@@ -59,8 +59,10 @@ export const getAllUsers = async (req: Request, res: Response) => {
         email: true,
         phone: true,
         role: true,
-        virtualAccountNumber: true,
-        virtualAccountBank: true,
+        ppAccountNumber: true,
+        ppBankName: true,
+        psAccountNumber: true,
+        psBankName: true,
         wallet: { select: { balance: true } },
         createdAt: true
       },
@@ -110,7 +112,7 @@ export const generateMissingAccounts = async (req: Request, res: Response) => {
     // 1. Find users with no virtual account number
     const usersWithoutAccount = await prisma.user.findMany({
       where: {
-        virtualAccountNumber: null,
+        ppAccountNumber: null,
         role: 'USER' // Only for regular users
       }
     });
@@ -135,9 +137,9 @@ export const generateMissingAccounts = async (req: Request, res: Response) => {
           await prisma.user.update({
             where: { id: user.id },
             data: {
-              virtualAccountNumber: virtualAccount.accountNumber,
-              virtualAccountBank: virtualAccount.bankName,
-              virtualAccountName: virtualAccount.accountName,
+              ppAccountNumber: virtualAccount.accountNumber,
+              ppBankName: virtualAccount.bankName,
+              ppAccountName: virtualAccount.accountName,
             }
           });
           successCount++;
@@ -168,7 +170,7 @@ export const generateSingleAccount = async (req: Request, res: Response) => {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     
     if (!user) return res.status(404).json({ error: 'User not found' });
-    if (user.virtualAccountNumber) return res.status(400).json({ error: 'User already has a virtual account' });
+    if (user.ppAccountNumber) return res.status(400).json({ error: 'User already has a virtual account' });
 
     try {
       const virtualAccount = await PaymentPointService.createDedicatedAccount(
@@ -185,9 +187,9 @@ export const generateSingleAccount = async (req: Request, res: Response) => {
         await prisma.user.update({
           where: { id: user.id },
           data: {
-            virtualAccountNumber: accountNumber,
-            virtualAccountBank: bankName,
-            virtualAccountName: accountName,
+            ppAccountNumber: accountNumber,
+            ppBankName: bankName,
+            ppAccountName: accountName,
           }
         });
         return res.json({ message: 'Account generated successfully', bank: bankName, account: accountNumber });
