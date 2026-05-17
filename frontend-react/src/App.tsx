@@ -12,11 +12,13 @@ import { BulkSmsPage } from '@/pages/dashboard/BulkSmsPage'
 import { UserSettingsPage } from '@/pages/dashboard/UserSettingsPage'
 import { ProfilePage } from '@/pages/dashboard/ProfilePage'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
+import { GlobalAlertModal } from '@/components/layout/GlobalAlertModal'
 
 export default function App() {
   return (
     <HashRouter>
       <ClientLayout>
+        <GlobalAlertModal />
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/auth/register" element={<RegisterPage />} />

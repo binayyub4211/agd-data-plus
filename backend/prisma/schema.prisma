@@ -172,3 +172,12 @@ model Notification {
   @@index([userId])
   @@map("notifications")
 }
+
+model SystemAlert {
+  id        String   @id @default(uuid())
+  message   String
+  isActive  Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+
+  @@map("system_alerts")
+}

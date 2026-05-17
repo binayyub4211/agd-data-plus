@@ -288,3 +288,37 @@ export const deleteUser = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to delete user' });
   }
 };
+
+export const createSystemAlert = async (req: Request, res: Response) => {
+  try {
+    const { message } = req.body;
+    if (!message) return res.status(400).json({ error: 'Message is required' });
+
+    // Deactivate all existing alerts
+    await prisma.systemAlert.updateMany({
+      where: { isActive: true },
+      data: { isActive: false }
+    });
+
+    const alert = await prisma.systemAlert.create({
+      data: { message, isActive: true }
+    });
+
+    res.json({ success: true, alert });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to create alert' });
+  }
+};
+
+export const deleteSystemAlert = async (req: Request, res: Response) => {
+  try {
+    await prisma.systemAlert.updateMany({
+      where: { isActive: true },
+      data: { isActive: false }
+    });
+
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to delete alert' });
+  }
+};

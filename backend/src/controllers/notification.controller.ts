@@ -99,3 +99,16 @@ export const replyToNotification = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to submit reply' });
   }
 };
+
+export const getActiveSystemAlert = async (req: Request, res: Response) => {
+  try {
+    const activeAlert = await prisma.systemAlert.findFirst({
+      where: { isActive: true },
+      orderBy: { updatedAt: 'desc' }
+    });
+    
+    res.json({ alert: activeAlert });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to fetch system alert' });
+  }
+};

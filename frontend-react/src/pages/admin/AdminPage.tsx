@@ -182,6 +182,54 @@ export function AdminPage() {
           />
         </div>
 
+        {/* Global Alert Management */}
+        <div className="bg-[#111111] border border-red-500/20 rounded-2xl p-6 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/5 rounded-full blur-3xl pointer-events-none" />
+          <div className="flex items-center gap-3 mb-4">
+            <ShieldAlert size={20} className="text-red-500" />
+            <h2 className="text-lg font-black font-display uppercase tracking-widest text-red-500">Global Urgent Alert</h2>
+          </div>
+          <div className="flex flex-col md:flex-row gap-4">
+            <Input 
+              placeholder="Enter critical message for all users..." 
+              id="alertMessage"
+              className="flex-1 bg-white/5 border-white/10 text-white"
+            />
+            <div className="flex gap-2">
+              <Button 
+                onClick={async () => {
+                  const el = document.getElementById('alertMessage') as HTMLInputElement;
+                  if (!el.value) return toast.error('Message is empty');
+                  try {
+                    await api.post('/admin/alert', { message: el.value });
+                    toast.success('Global alert broadcasted to all users!');
+                    el.value = '';
+                  } catch (e: any) {
+                    toast.error(e.response?.data?.error || 'Failed to set alert');
+                  }
+                }}
+                className="bg-red-500 hover:bg-red-600 text-white uppercase tracking-widest text-xs font-black px-6"
+              >
+                Set Alert
+              </Button>
+              <Button 
+                onClick={async () => {
+                  try {
+                    await api.delete('/admin/alert');
+                    toast.success('Global alert deactivated');
+                  } catch (e: any) {
+                    toast.error(e.response?.data?.error || 'Failed to remove alert');
+                  }
+                }}
+                variant="outline"
+                className="border-red-500/30 text-red-400 hover:bg-red-500/10 uppercase tracking-widest text-xs font-black px-6"
+              >
+                Disable
+              </Button>
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* User Management */}
           <div className="lg:col-span-2 space-y-4">

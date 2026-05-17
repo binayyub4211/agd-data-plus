@@ -6,6 +6,7 @@ const router = Router();
 
 router.use(protect);
 
+router.get('/alert/active', notificationController.getActiveSystemAlert);
 router.get('/', notificationController.getNotifications);
 router.patch('/:id/read', notificationController.markAsRead);
 router.patch('/read-all', notificationController.markAllAsRead);
