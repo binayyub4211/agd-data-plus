@@ -6,3 +6,4 @@ dist
 logs
 scratch/*.ts
 !scratch/seed_admin.ts
+test-email.js
