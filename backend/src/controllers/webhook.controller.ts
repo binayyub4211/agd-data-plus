@@ -5,6 +5,10 @@ import { prisma } from '../utils/prisma';
 import { TransactionStatus, ServiceType, Provider } from '../types/prisma';
 
 export const paystackWebhook = async (req: Request, res: Response) => {
+  console.log('--- WEBHOOK RECEIVED ---');
+  console.log('Headers:', req.headers);
+  console.log('Body:', req.body);
+  
   const paystackSignature = req.headers['x-paystack-signature'];
   const ppSignature = req.headers['paymentpoint-signature'] || req.headers['http_paymentpoint_signature'];
 
@@ -43,10 +47,12 @@ export const paystackWebhook = async (req: Request, res: Response) => {
     return handlePaymentPointEvent(req.body, res);
   }
 
+  console.error('Webhook failed: Invalid signature or unknown source');
   return res.status(401).send('Invalid signature or unknown source');
 };
 
 async function handlePaystackEvent(event: any, res: Response) {
+  console.log('Processing Paystack Event:', event.event);
   try {
     if (event.event === 'charge.success') {
       const { reference, amount, customer } = event.data;
