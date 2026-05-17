@@ -1,14 +1,23 @@
 import nodemailer from 'nodemailer';
 import { config } from '../config/config';
 
+const SENDER_EMAIL = process.env.SMTP_FROM || config.SMTP_USER || 'noreply@agddataplus.com.ng';
+
 const transporter = nodemailer.createTransport({
   host: config.SMTP_HOST,
   port: Number(config.SMTP_PORT),
-  secure: Number(config.SMTP_PORT) === 465, // true for 465, false for other ports
+  secure: Number(config.SMTP_PORT) === 465,
   auth: {
     user: config.SMTP_USER,
     pass: config.SMTP_PASS,
   },
+  // Add these for better debugging and reliability
+  connectionTimeout: 10000, // 10 seconds timeout
+  greetingTimeout: 10000,
+  socketTimeout: 15000,
+  tls: {
+    rejectUnauthorized: false // Helps with local certificate issues
+  }
 });
 
 export class EmailService {
@@ -81,7 +90,7 @@ export class EmailService {
 
     try {
       const info = await transporter.sendMail({
-        from: `"${this.BRAND_NAME}" <${config.SMTP_USER}>`,
+        from: `"${this.BRAND_NAME}" <${SENDER_EMAIL}>`,
         to,
         subject,
         html,
