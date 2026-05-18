@@ -16,5 +16,6 @@ router.post('/generate-accounts', userController.generateAccounts);
 router.post('/pin/set', pinController.setTransactionPin);
 router.post('/pin/verify', pinController.verifyTransactionPin);
 router.get('/pin/configured', pinController.checkPinConfigured);
+router.post('/pin/reset', pinController.resetTransactionPin);
 
 export default router;

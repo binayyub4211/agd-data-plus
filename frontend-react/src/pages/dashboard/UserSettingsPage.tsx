@@ -26,6 +26,7 @@ export function UserSettingsPage() {
   // Transaction PIN
   const [hasPin, setHasPin] = useState(false)
   const [pinForm, setPinForm] = useState({ password: '', newPin: '', confirmPin: '' })
+  const [forgotPinMode, setForgotPinMode] = useState(false)
 
   const checkPinConfigured = async () => {
     try {
@@ -93,14 +94,23 @@ export function UserSettingsPage() {
   const handleUpdatePin = async (e: React.FormEvent) => {
     e.preventDefault()
     if (pinForm.newPin.length !== 4) return toast.error('PIN must be exactly 4 digits')
+    if (pinForm.newPin !== pinForm.confirmPin) return toast.error('PINs do not match')
     setSaving(true)
     try {
-      await api.post('/user/pin/set', {
-        password: pinForm.password,
-        pin: pinForm.newPin
-      })
-      toast.success('Transaction PIN updated successfully!')
+      if (forgotPinMode) {
+        await api.post('/user/pin/reset', {
+          password: pinForm.password,
+          pin: pinForm.newPin
+        })
+        toast.success('Transaction PIN reset successfully!')
+      } else {
+        await api.post('/user/pin/set', {
+          pin: pinForm.newPin
+        })
+        toast.success('Transaction PIN configured successfully!')
+      }
       setPinForm({ password: '', newPin: '', confirmPin: '' })
+      setForgotPinMode(false)
       checkPinConfigured()
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to update Transaction PIN')
@@ -269,17 +279,21 @@ export function UserSettingsPage() {
                 </div>
               </div>
               <form onSubmit={handleUpdatePin} className="space-y-4">
-                <Input 
-                  label="Account Password" 
-                  type="password" 
-                  value={pinForm.password}
-                  onChange={e => setPinForm({...pinForm, password: e.target.value})}
-                  placeholder="Confirm account password" 
-                  required
-                />
+                {forgotPinMode && (
+                  <Input 
+                    label="Account Password" 
+                    type="password" 
+                    value={pinForm.password}
+                    onChange={e => setPinForm({...pinForm, password: e.target.value})}
+                    placeholder="Confirm account password" 
+                    required
+                  />
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-brand-silver/50">4-Digit PIN</label>
+                    <label className="text-xs font-bold text-brand-silver/50">
+                      {forgotPinMode ? 'New 4-Digit PIN' : '4-Digit PIN'}
+                    </label>
                     <input 
                       type="password" 
                       maxLength={4}
@@ -307,12 +321,25 @@ export function UserSettingsPage() {
                     />
                   </div>
                 </div>
+                
+                {hasPin && (
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setForgotPinMode(!forgotPinMode)}
+                      className="text-[10px] text-brand-silver/30 hover:text-brand-gold font-bold tracking-wider uppercase transition-colors"
+                    >
+                      {forgotPinMode ? 'Back to standard change' : 'Forgot PIN? Reset with password'}
+                    </button>
+                  </div>
+                )}
+
                 <Button 
                   type="submit" 
-                  disabled={saving || pinForm.newPin !== pinForm.confirmPin || pinForm.newPin.length !== 4} 
+                  disabled={saving || pinForm.newPin !== pinForm.confirmPin || pinForm.newPin.length !== 4 || (forgotPinMode && !pinForm.password)} 
                   className="w-full bg-brand-gold hover:bg-brand-gold/80 text-brand-midnight font-black shadow-[0_0_20px_rgba(251,191,36,0.15)]"
                 >
-                  {hasPin ? 'Update Transaction PIN' : 'Configure PIN'}
+                  {forgotPinMode ? 'Reset Transaction PIN' : hasPin ? 'Update Transaction PIN' : 'Configure PIN'}
                 </Button>
               </form>
             </Card>

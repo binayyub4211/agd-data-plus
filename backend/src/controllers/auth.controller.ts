@@ -96,6 +96,11 @@ export const register = async (req: Request, res: Response) => {
       console.warn('Paystack Account Generation Failed:', e);
     }
 
+    // Generate a beautiful, unique custom referral code
+    const namePrefix = validatedData.name.split(' ')[0].replace(/[^a-zA-Z]/g, '').substring(0, 5).toUpperCase();
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const customReferralCode = `AGD-${namePrefix}-${randomSuffix}`;
+
     // 3. Create user and wallet in a transaction
     const result = await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
@@ -114,6 +119,7 @@ export const register = async (req: Request, res: Response) => {
           psBankName: psAccount?.bank?.name,
           psAccountName: psAccount?.account_name,
           referredBy: referrerId,
+          referralCode: customReferralCode,
         },
       });
 

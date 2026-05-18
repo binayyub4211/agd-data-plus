@@ -6,6 +6,8 @@ import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import api from '@/lib/api'
 
+import { Clock } from 'lucide-react'
+
 interface FundingModalProps {
   isOpen: boolean
   onClose: () => void
@@ -19,9 +21,11 @@ interface FundingModalProps {
     bankName?: string
     accountName?: string
   }
+  onRegenerateProvider?: (provider: 'PAYSTACK' | 'PAYMENTPOINT') => Promise<void>
+  isRegenerating?: boolean
 }
 
-export function FundingModal({ isOpen, onClose, ppAccount, psAccount }: FundingModalProps) {
+export function FundingModal({ isOpen, onClose, ppAccount, psAccount, onRegenerateProvider, isRegenerating }: FundingModalProps) {
   const [copied, setCopied] = useState<'PP' | 'PS' | null>(null)
   const [method, setMethod] = useState<'TRANSFER' | 'ONLINE'>('TRANSFER')
   const [amount, setAmount] = useState('')
@@ -110,64 +114,109 @@ export function FundingModal({ isOpen, onClose, ppAccount, psAccount }: FundingM
               {method === 'TRANSFER' ? (
                 <div className="space-y-4">
                   {/* Paystack Virtual Account */}
-                  {psAccount?.accountNumber ? (
-                    <div className="p-5 rounded-2xl bg-brand-royal/10 border border-brand-royal/20 space-y-3">
-                      <div className="flex justify-between items-center">
-                        <p className="text-[9px] font-black text-brand-cyan uppercase tracking-[0.2em]">Method 1: Paystack (Wema Bank)</p>
+                  <div className="p-5 rounded-2xl bg-brand-royal/10 border border-brand-royal/20 space-y-3 relative">
+                    <div className="flex justify-between items-center">
+                      <p className="text-[9px] font-black text-brand-cyan uppercase tracking-[0.2em]">Method 1: Paystack (Wema Bank)</p>
+                      <div className="flex items-center gap-2">
+                        {onRegenerateProvider && psAccount?.accountNumber && (
+                          <button 
+                            onClick={() => onRegenerateProvider('PAYSTACK')}
+                            disabled={isRegenerating}
+                            className="p-1 hover:bg-white/10 rounded-md text-brand-cyan/60 hover:text-brand-cyan transition-colors"
+                            title="Refresh Paystack A/C"
+                          >
+                            <Clock size={12} className={isRegenerating ? 'animate-spin' : ''} />
+                          </button>
+                        )}
                         <ShieldCheck size={14} className="text-brand-cyan" />
                       </div>
-                      
-                      <div className="flex items-center justify-between bg-brand-midnight/50 p-4 rounded-xl border border-brand-royal/20">
-                        <div>
-                          <p className="text-[8px] font-black text-brand-silver/30 uppercase tracking-widest mb-1">Account Number</p>
-                          <span className="text-xl font-black text-white tracking-[0.1em] font-display">
-                            {psAccount.accountNumber}
-                          </span>
+                    </div>
+                    
+                    {psAccount?.accountNumber ? (
+                      <>
+                        <div className="flex items-center justify-between bg-brand-midnight/50 p-4 rounded-xl border border-brand-royal/20">
+                          <div>
+                            <p className="text-[8px] font-black text-brand-silver/30 uppercase tracking-widest mb-1">Account Number</p>
+                            <span className="text-xl font-black text-white tracking-[0.1em] font-display">
+                              {psAccount.accountNumber}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => handleCopy(psAccount.accountNumber!, 'PS')}
+                            className="p-3 rounded-xl bg-brand-royal/20 text-brand-cyan hover:scale-110 transition-all"
+                          >
+                            {copied === 'PS' ? <Check size={18} /> : <Copy size={18} />}
+                          </button>
                         </div>
-                        <button
-                          onClick={() => handleCopy(psAccount.accountNumber!, 'PS')}
-                          className="p-3 rounded-xl bg-brand-royal/20 text-brand-cyan hover:scale-110 transition-all"
+                        <div className="flex justify-between text-[10px] text-brand-silver/40 font-bold uppercase">
+                          <span>A/C: {psAccount.accountName}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="py-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="w-full text-[9px] h-9 border-brand-royal/30 text-brand-cyan"
+                          onClick={() => onRegenerateProvider?.('PAYSTACK')}
+                          loading={isRegenerating}
                         >
-                          {copied === 'PS' ? <Check size={18} /> : <Copy size={18} />}
-                        </button>
+                          Generate Paystack A/C
+                        </Button>
                       </div>
-                      <div className="flex justify-between text-[10px] text-brand-silver/40 font-bold uppercase">
-                        <span>A/C: {psAccount.accountName}</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="p-5 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center h-24">
-                      <p className="text-[10px] text-brand-silver/20 animate-pulse italic">Setting up Paystack A/C...</p>
-                    </div>
-                  )}
+                    )}
+                  </div>
 
                   {/* PaymentPoint Virtual Account */}
-                  {ppAccount?.accountNumber ? (
-                    <div className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-3">
-                      <p className="text-[9px] font-black text-brand-silver/40 uppercase tracking-[0.2em]">Method 2: PaymentPoint ({ppAccount.bankName})</p>
-                      <div className="flex items-center justify-between bg-brand-midnight/50 p-4 rounded-xl border border-white/5">
-                        <div>
-                          <p className="text-[8px] font-black text-brand-silver/30 uppercase tracking-widest mb-1">Account Number</p>
-                          <span className="text-xl font-black text-white tracking-[0.1em] font-display">
-                            {ppAccount.accountNumber}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => handleCopy(ppAccount.accountNumber!, 'PP')}
-                          className="p-3 rounded-xl bg-white/10 text-brand-silver/50 hover:scale-110 transition-all"
+                  <div className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-3 relative">
+                    <div className="flex justify-between items-center">
+                      <p className="text-[9px] font-black text-brand-silver/40 uppercase tracking-[0.2em]">Method 2: PaymentPoint</p>
+                      {onRegenerateProvider && ppAccount?.accountNumber && (
+                        <button 
+                          onClick={() => onRegenerateProvider('PAYMENTPOINT')}
+                          disabled={isRegenerating}
+                          className="p-1 hover:bg-white/10 rounded-md text-brand-silver/30 hover:text-brand-cyan transition-colors"
+                          title="Refresh PaymentPoint A/C"
                         >
-                          {copied === 'PP' ? <Check size={18} /> : <Copy size={18} />}
+                          <Clock size={12} className={isRegenerating ? 'animate-spin' : ''} />
                         </button>
-                      </div>
-                      <div className="flex justify-between text-[10px] text-brand-silver/40 font-bold uppercase">
-                        <span>A/C: {ppAccount.accountName}</span>
-                      </div>
+                      )}
                     </div>
-                  ) : (
-                    <div className="p-5 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center h-24">
-                      <p className="text-[10px] text-brand-silver/20 animate-pulse italic">Setting up PaymentPoint A/C...</p>
-                    </div>
-                  )}
+
+                    {ppAccount?.accountNumber ? (
+                      <>
+                        <div className="flex items-center justify-between bg-brand-midnight/50 p-4 rounded-xl border border-white/5">
+                          <div>
+                            <p className="text-[8px] font-black text-brand-silver/30 uppercase tracking-widest mb-1">Account Number</p>
+                            <span className="text-xl font-black text-white tracking-[0.1em] font-display">
+                              {ppAccount.accountNumber}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => handleCopy(ppAccount.accountNumber!, 'PP')}
+                            className="p-3 rounded-xl bg-white/10 text-brand-silver/50 hover:scale-110 transition-all"
+                          >
+                            {copied === 'PP' ? <Check size={18} /> : <Copy size={18} />}
+                          </button>
+                        </div>
+                        <div className="flex justify-between text-[10px] text-brand-silver/40 font-bold uppercase">
+                          <span>A/C: {ppAccount.accountName} (PaymentPoint)</span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="py-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="w-full text-[9px] h-9 border-white/10 text-brand-silver/50"
+                          onClick={() => onRegenerateProvider?.('PAYMENTPOINT')}
+                          loading={isRegenerating}
+                        >
+                          Generate PaymentPoint A/C
+                        </Button>
+                      </div>
+                    )}
+                  </div>
 
                   <div className="p-4 rounded-2xl bg-brand-cyan/5 border border-brand-cyan/10 flex items-start gap-3 mt-4">
                     <ShieldCheck className="text-brand-cyan shrink-0 mt-0.5" size={16} />

@@ -39,7 +39,15 @@ export function UpdateModal() {
         }
       });
     }
-    window.location.reload();
+    if ('caches' in window) {
+      caches.keys().then((names) => {
+        for (let name of names) {
+          caches.delete(name);
+        }
+      }).catch(err => console.warn('Cache clear error:', err));
+    }
+    // Perform hard reload by appending a time-based query parameter
+    window.location.href = window.location.origin + window.location.pathname + '?v=' + Date.now() + window.location.hash;
   };
 
   if (!updateAvailable) return null;

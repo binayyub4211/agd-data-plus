@@ -34,7 +34,7 @@ export function ReferralsPage() {
 
   const copyToClipboard = () => {
     if (!user?.referralCode) return
-    const link = `${window.location.origin}/auth/register?ref=${user.referralCode}`
+    const link = `${window.location.origin}/#/auth/register?ref=${user.referralCode}`
     navigator.clipboard.writeText(link)
     setCopied(true)
     toast.success('Referral link copied!')

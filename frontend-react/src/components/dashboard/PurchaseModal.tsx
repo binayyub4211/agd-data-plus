@@ -121,7 +121,6 @@ export function PurchaseModal({ isOpen, onClose, serviceType, refreshProfile }: 
     setLoading(true)
     try {
       await api.post('/user/pin/set', {
-        password: setupPassword,
         pin: setupPin
       })
       toast.success('Transaction PIN configured successfully!')
@@ -390,16 +389,6 @@ export function PurchaseModal({ isOpen, onClose, serviceType, refreshProfile }: 
                       <h4 className="text-lg font-black text-white uppercase tracking-widest font-display">Configure Transaction PIN</h4>
                       <p className="text-brand-silver/50 text-xs px-4 mt-1">To protect your wallet, create a secure 4-digit PIN used to authorize all VTU payments.</p>
                     </div>
-
-                    <Input
-                      id="setupPassword"
-                      label="Confirm Account Password"
-                      type="password"
-                      placeholder="••••••••"
-                      required
-                      value={setupPassword}
-                      onChange={(e) => setSetupPassword(e.target.value)}
-                    />
 
                     <div className="space-y-2">
                       <label className="text-[10px] font-black uppercase tracking-widest text-brand-silver/40 px-1">

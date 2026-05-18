@@ -273,12 +273,12 @@ export function DashboardPage() {
           )}
         </motion.div>
 
-        {/* Balance + Virtual Account */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Balance Section */}
+        <div className="w-full">
           {/* Balance Card */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="lg:col-span-2">
-            <Card className="p-8 bg-gradient-to-br from-brand-royal/30 via-brand-midnight/60 to-brand-midnight/80 border-brand-royal/20 relative overflow-hidden group h-full">
-              <div className="relative z-10 flex flex-col h-full justify-between">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+            <Card className="p-8 bg-gradient-to-br from-brand-royal/30 via-brand-midnight/60 to-brand-midnight/80 border-brand-royal/20 relative overflow-hidden group w-full">
+              <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                 <div>
                   <div className="flex items-center gap-2 text-brand-silver/50 text-xs font-bold uppercase tracking-widest mb-4">
                     <ShieldCheck size={14} className="text-brand-cyan" />
@@ -296,11 +296,11 @@ export function DashboardPage() {
                     <span className="text-brand-cyan text-xs font-bold uppercase tracking-widest">Wallet Active</span>
                   </div>
                 </div>
-                <div className="mt-10">
+                <div className="shrink-0">
                   <Button
                     size="lg"
                     onClick={handleFundWallet}
-                    className="w-full sm:w-64 bg-white text-brand-midnight hover:bg-brand-silver font-black shadow-[0_0_30px_rgba(255,255,255,0.15)] transition-all"
+                    className="w-full sm:w-64 bg-white text-brand-midnight hover:bg-brand-silver font-black shadow-[0_0_30px_rgba(255,255,255,0.15)] transition-all h-14 uppercase tracking-widest text-xs"
                   >
                     Fund Wallet
                   </Button>
@@ -308,155 +308,6 @@ export function DashboardPage() {
               </div>
             </Card>
           </motion.div>
-
-          {/* Virtual Accounts */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-            <Card className="p-7 border-dashed border-brand-royal/30 h-full flex flex-col justify-between">
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <span className="px-3 py-1 bg-brand-cyan/10 text-brand-cyan text-[10px] font-black uppercase tracking-[0.2em] rounded-full border border-brand-cyan/20">
-                    Auto-Funding
-                  </span>
-                  <button 
-                    onClick={async () => {
-                      setLoading(true);
-                      try {
-                        await api.post('/user/generate-accounts');
-                        toast.success('Accounts regenerated!');
-                        fetchProfile(true);
-                      } catch (e) {
-                        toast.error('Failed to regenerate accounts');
-                      } finally {
-                        setLoading(false);
-                      }
-                    }}
-                    title="Refresh Accounts"
-                    className="p-2 hover:bg-white/5 rounded-lg text-brand-silver/30 hover:text-brand-cyan transition-colors"
-                  >
-                    <Clock size={16} />
-                  </button>
-                </div>
-
-                {/* Paystack Account */}
-                <div className="p-4 rounded-2xl bg-brand-royal/10 border border-brand-royal/20 relative">
-                  <div className="flex justify-between items-start mb-1">
-                    <p className="text-brand-silver/40 text-[8px] font-black uppercase tracking-widest">Method 1: Paystack (Wema Bank)</p>
-                    {user?.psAccountNumber && (
-                      <button 
-                        onClick={() => handleRegenerateProvider('PAYSTACK')}
-                        className="p-1 hover:bg-white/10 rounded-md text-brand-cyan/40 hover:text-brand-cyan transition-colors"
-                        title="Refresh Paystack A/C"
-                      >
-                        <Clock size={12} />
-                      </button>
-                    )}
-                  </div>
-                  {user?.psAccountNumber ? (
-                    <>
-                      <h3 className="text-xl font-black text-white tracking-widest font-display">{user.psAccountNumber}</h3>
-                      <p className="text-brand-cyan font-bold text-[10px] uppercase tracking-wider">{user.psBankName}</p>
-                      <button onClick={() => { navigator.clipboard.writeText(user.psAccountNumber!); toast.success('Paystack A/C Copied!'); }} className="mt-2 text-[10px] text-brand-silver/30 hover:text-brand-cyan flex items-center gap-1">
-                        <Copy size={10} /> Copy Account
-                      </button>
-                    </>
-                  ) : (
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      className="w-full mt-2 text-[8px] h-8 border-brand-royal/30 text-brand-cyan"
-                      onClick={() => handleRegenerateProvider('PAYSTACK')}
-                      loading={loading}
-                    >
-                      Generate Paystack A/C
-                    </Button>
-                  )}
-                </div>
-
-                {/* PaymentPoint Account */}
-                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 relative">
-                  <div className="flex justify-between items-start mb-1">
-                    <p className="text-brand-silver/40 text-[8px] font-black uppercase tracking-widest">Method 2: PaymentPoint</p>
-                    {user?.ppAccountNumber && (
-                      <button 
-                        onClick={() => handleRegenerateProvider('PAYMENTPOINT')}
-                        className="p-1 hover:bg-white/10 rounded-md text-brand-silver/20 hover:text-brand-cyan transition-colors"
-                        title="Refresh PaymentPoint A/C"
-                      >
-                        <Clock size={12} />
-                      </button>
-                    )}
-                  </div>
-                  {user?.ppAccountNumber ? (
-                    <>
-                      <h3 className="text-xl font-black text-white tracking-widest font-display">{user.ppAccountNumber}</h3>
-                      <p className="text-brand-cyan font-bold text-[10px] uppercase tracking-wider">{user.ppBankName}</p>
-                      <button onClick={() => { navigator.clipboard.writeText(user.ppAccountNumber!); toast.success('PaymentPoint A/C Copied!'); }} className="mt-2 text-[10px] text-brand-silver/30 hover:text-brand-cyan flex items-center gap-1">
-                        <Copy size={10} /> Copy Account
-                      </button>
-                    </>
-                  ) : (
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      className="w-full mt-2 text-[8px] h-8 border-white/10 text-brand-silver/50"
-                      onClick={() => handleRegenerateProvider('PAYMENTPOINT')}
-                      loading={loading}
-                    >
-                      Generate PaymentPoint A/C
-                    </Button>
-                  )}
-                </div>
-              </div>
-              <p className="text-[9px] text-brand-silver/20 mt-6 leading-relaxed">
-                If an account is missing, click "Generate" to create it.
-              </p>
-            </Card>
-          </motion.div>
-        </div>
-
-        {/* Sliding Promotional Banners */}
-        <div className="relative overflow-hidden rounded-3xl border border-brand-royal/20 bg-brand-royal/5 p-8 backdrop-blur-xl">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-brand-cyan/5 rounded-full blur-3xl pointer-events-none" />
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentPromo}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3 }}
-              className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10"
-            >
-              <div className="space-y-2">
-                <span className="px-3 py-1 bg-brand-cyan/10 text-brand-cyan text-[9px] font-black uppercase tracking-[0.2em] rounded-full border border-brand-cyan/20">
-                  EXCLUSIVE CAMPAIGN
-                </span>
-                <h3 className="text-2xl font-black font-display text-white tracking-tight mt-2">
-                  {PROMOS[currentPromo].title}
-                </h3>
-                <p className="text-brand-silver/50 text-xs md:text-sm max-w-xl leading-relaxed">
-                  {PROMOS[currentPromo].desc}
-                </p>
-              </div>
-              <Button
-                onClick={() => navigate(PROMOS[currentPromo].route)}
-                className="shrink-0 bg-white text-brand-midnight hover:bg-brand-silver font-black text-xs uppercase tracking-widest px-6 h-12 shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all"
-              >
-                {PROMOS[currentPromo].btnText}
-              </Button>
-            </motion.div>
-          </AnimatePresence>
-          {/* Indicators */}
-          <div className="flex gap-1.5 mt-6 justify-start">
-            {PROMOS.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => setCurrentPromo(idx)}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  currentPromo === idx ? 'w-6 bg-brand-cyan' : 'w-1.5 bg-white/10'
-                }`}
-              />
-            ))}
-          </div>
         </div>
 
         {/* Service Cards */}
@@ -473,12 +324,12 @@ export function DashboardPage() {
                 onClick={() => {
                   setModalService(svc.id)
                 }}
-                className={`group flex flex-col items-center justify-center p-8 rounded-3xl border ${svc.border} bg-brand-midnight/60 backdrop-blur-xl transition-all active:scale-95 hover:-translate-y-2 hover:shadow-[0_8px_32px_rgba(0,0,0,0.3)]`}
+                className={`group flex flex-col items-center justify-center p-5 rounded-2xl border ${svc.border} bg-brand-midnight/60 backdrop-blur-xl transition-all active:scale-95 hover:-translate-y-2 hover:shadow-[0_8px_32px_rgba(0,0,0,0.3)]`}
               >
-                <div className={`w-14 h-14 rounded-2xl bg-white/5 ${svc.glow} mb-4 transition-all flex items-center justify-center`}>
-                  <svc.icon className="text-brand-silver/40 group-hover:text-white transition-colors" size={24} />
+                <div className={`w-10 h-10 rounded-xl bg-white/5 ${svc.glow} mb-3 transition-all flex items-center justify-center`}>
+                  <svc.icon className="text-brand-silver/40 group-hover:text-white transition-colors" size={20} />
                 </div>
-                <span className="text-xs font-black text-brand-silver/60 group-hover:text-white uppercase tracking-widest transition-colors">
+                <span className="text-[10px] font-black text-brand-silver/60 group-hover:text-white uppercase tracking-widest transition-colors">
                   {svc.name}
                 </span>
               </motion.button>
@@ -508,12 +359,12 @@ export function DashboardPage() {
                           setModalService(svc.id)
                         }
                       }}
-                      className={`group flex flex-col items-center justify-center p-8 rounded-3xl border ${svc.border} bg-brand-midnight/60 backdrop-blur-xl transition-all active:scale-95 hover:-translate-y-2 hover:shadow-[0_8px_32px_rgba(0,0,0,0.3)]`}
+                      className={`group flex flex-col items-center justify-center p-5 rounded-2xl border ${svc.border} bg-brand-midnight/60 backdrop-blur-xl transition-all active:scale-95 hover:-translate-y-2 hover:shadow-[0_8px_32px_rgba(0,0,0,0.3)]`}
                     >
-                      <div className={`w-14 h-14 rounded-2xl bg-white/5 ${svc.glow} mb-4 transition-all flex items-center justify-center`}>
-                        <svc.icon className="text-brand-silver/40 group-hover:text-white transition-colors" size={24} />
+                      <div className={`w-10 h-10 rounded-xl bg-white/5 ${svc.glow} mb-3 transition-all flex items-center justify-center`}>
+                        <svc.icon className="text-brand-silver/40 group-hover:text-white transition-colors" size={20} />
                       </div>
-                      <span className="text-xs font-black text-brand-silver/60 group-hover:text-white uppercase tracking-widest transition-colors">
+                      <span className="text-[10px] font-black text-brand-silver/60 group-hover:text-white uppercase tracking-widest transition-colors">
                         {svc.name}
                       </span>
                     </motion.button>
@@ -531,6 +382,54 @@ export function DashboardPage() {
             >
               {showMoreServices ? 'Hide Secondary Services' : 'View More Services'}
             </Button>
+          </div>
+        </div>
+
+        {/* Sliding Promotional Banners */}
+        <div className="relative overflow-hidden rounded-3xl border border-brand-royal/20 bg-gradient-to-r from-brand-royal/10 via-brand-cyan/5 to-brand-gold/10 p-8 backdrop-blur-xl shadow-[0_0_50px_rgba(26,79,219,0.15)] group transition-all duration-500 hover:shadow-[0_0_60px_rgba(26,79,219,0.25)] hover:border-brand-cyan/20">
+          <div className="absolute inset-0 bg-gradient-to-r from-brand-cyan/10 via-transparent to-brand-gold/10 opacity-30 group-hover:opacity-60 transition-opacity pointer-events-none" />
+          <div className="absolute top-0 right-0 w-80 h-80 bg-brand-cyan/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-80 h-80 bg-brand-gold/5 rounded-full blur-3xl pointer-events-none" />
+          
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentPromo}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10"
+            >
+              <div className="space-y-2">
+                <span className="px-3 py-1 bg-gradient-to-r from-brand-cyan to-brand-royal text-brand-midnight text-[9px] font-black uppercase tracking-[0.25em] rounded-full shadow-[0_0_15px_rgba(0,212,255,0.3)]">
+                  EXCLUSIVE CAMPAIGN
+                </span>
+                <h3 className="text-2xl font-black font-display text-white tracking-tight mt-3">
+                  {PROMOS[currentPromo].title}
+                </h3>
+                <p className="text-brand-silver/75 text-xs md:text-sm max-w-xl leading-relaxed">
+                  {PROMOS[currentPromo].desc}
+                </p>
+              </div>
+              <Button
+                onClick={() => navigate(PROMOS[currentPromo].route)}
+                className="shrink-0 bg-gradient-to-r from-brand-cyan to-brand-royal text-white hover:scale-105 active:scale-95 font-black text-xs uppercase tracking-widest px-6 h-12 shadow-[0_0_25px_rgba(0,212,255,0.4)] border-none transition-all"
+              >
+                {PROMOS[currentPromo].btnText}
+              </Button>
+            </motion.div>
+          </AnimatePresence>
+          {/* Indicators */}
+          <div className="flex gap-1.5 mt-6 justify-start">
+            {PROMOS.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setCurrentPromo(idx)}
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  currentPromo === idx ? 'w-6 bg-brand-cyan' : 'w-1.5 bg-white/10'
+                }`}
+              />
+            ))}
           </div>
         </div>
 
@@ -608,6 +507,8 @@ export function DashboardPage() {
           bankName: user?.psBankName,
           accountName: user?.psAccountName
         }}
+        onRegenerateProvider={handleRegenerateProvider}
+        isRegenerating={loading}
       />
 
       {/* Purchase Modal */}

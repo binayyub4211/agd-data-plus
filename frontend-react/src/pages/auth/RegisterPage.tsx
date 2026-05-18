@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import api from '@/lib/api'
 import toast from 'react-hot-toast'
@@ -11,6 +11,7 @@ import { User, Mail, Phone, Lock, Eye, EyeOff, ShieldCheck, Home } from 'lucide-
 
 export function RegisterPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showWelcome, setShowWelcome] = useState(false)
@@ -19,6 +20,14 @@ export function RegisterPage() {
   const [formData, setFormData] = useState({
     name: '', email: '', phone: '', password: '', referralCode: '',
   })
+
+  useEffect(() => {
+    const ref = searchParams.get('ref')
+    if (ref) {
+      setFormData(prev => ({ ...prev, referralCode: ref }))
+      toast.success('Referral code applied automatically!')
+    }
+  }, [searchParams])
 
   const validatePassword = (pass: string) => {
     let score = 0;
