@@ -322,3 +322,186 @@ export const deleteSystemAlert = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to delete alert' });
   }
 };
+
+export const adjustUserWallet = async (req: Request, res: Response) => {
+  const { userId, amount, action, description } = req.body;
+
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const wallet = await tx.wallet.findUnique({ where: { userId } });
+      if (!wallet) throw new Error('Wallet not found');
+
+      const numericAmount = parseFloat(amount);
+      if (isNaN(numericAmount) || numericAmount <= 0) {
+        throw new Error('Invalid amount');
+      }
+
+      let newBalance = wallet.balance;
+      if (action === 'CREDIT') {
+        newBalance += numericAmount;
+      } else if (action === 'DEBIT') {
+        if (wallet.balance < numericAmount) {
+          throw new Error('Insufficient wallet balance to complete manual debit.');
+        }
+        newBalance -= numericAmount;
+      } else {
+        throw new Error('Invalid adjustment action (must be CREDIT or DEBIT).');
+      }
+
+      const updatedWallet = await tx.wallet.update({
+        where: { id: wallet.id },
+        data: { balance: newBalance }
+      });
+
+      await tx.auditLog.create({
+        data: {
+          userId,
+          action: action === 'CREDIT' ? 'MANUAL_CREDIT' : 'MANUAL_DEBIT',
+          amount: numericAmount,
+          previousBalance: wallet.balance,
+          newBalance: updatedWallet.balance,
+          description: description || `Manual admin wallet adjustment: ${action}`
+        }
+      });
+
+      return updatedWallet;
+    });
+
+    res.json({ success: true, message: 'Wallet adjusted successfully', newBalance: result.balance });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+export const getAllTransactionsAdmin = async (req: Request, res: Response) => {
+  try {
+    const { search, page = '1', limit = '10' } = req.query;
+    const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
+    const take = parseInt(limit as string);
+
+    const where: any = {};
+    if (search) {
+      where.OR = [
+        { id: { contains: search as string, mode: 'insensitive' } },
+        { reference: { contains: search as string, mode: 'insensitive' } },
+        { user: { email: { contains: search as string, mode: 'insensitive' } } },
+        { user: { phone: { contains: search as string, mode: 'insensitive' } } }
+      ];
+    }
+
+    const [transactions, total] = await Promise.all([
+      prisma.transaction.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+        include: { user: { select: { name: true, email: true, phone: true } } }
+      }),
+      prisma.transaction.count({ where })
+    ]);
+
+    res.json({
+      transactions,
+      meta: {
+        total,
+        page: parseInt(page as string),
+        limit: take,
+        totalPages: Math.ceil(total / take)
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to retrieve transactions.' });
+  }
+};
+
+export const getMarketAnalysis = async (req: Request, res: Response) => {
+  try {
+    // 1. Top Users by purchase volume
+    const users = await prisma.user.findMany({
+      include: {
+        transactions: {
+          where: { status: 'SUCCESS' },
+          select: { amount: true }
+        }
+      }
+    });
+
+    const analyzedUsers = users.map(user => {
+      const totalVolume = user.transactions.reduce((sum, tx) => sum + tx.amount, 0);
+      let tier = 'Silver';
+      if (totalVolume >= 50000) tier = 'Platinum';
+      else if (totalVolume >= 10000) tier = 'Gold';
+
+      return {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        totalSpent: totalVolume,
+        tier
+      };
+    }).sort((a, b) => b.totalSpent - a.totalSpent);
+
+    // 2. Referrals leaderboard (top referrers)
+    const referrals = await prisma.referral.findMany({
+      where: { status: 'PAID' }
+    });
+
+    const referralCounts: Record<string, number> = {};
+    referrals.forEach(ref => {
+      referralCounts[ref.referrerId] = (referralCounts[ref.referrerId] || 0) + 1;
+    });
+
+    const topReferrers = await Promise.all(
+      Object.keys(referralCounts).map(async referrerId => {
+        const user = await prisma.user.findUnique({
+          where: { id: referrerId },
+          select: { name: true, email: true }
+        });
+        return {
+          name: user ? user.name : 'Unknown User',
+          email: user ? user.email : '',
+          count: referralCounts[referrerId]
+        };
+      })
+    );
+    topReferrers.sort((a, b) => b.count - a.count);
+
+    // 3. Pricing Plan Rules
+    const planPrices = await prisma.servicePrice.findMany();
+
+    res.json({
+      topUsers: analyzedUsers.slice(0, 10),
+      topReferrers: topReferrers.slice(0, 10),
+      planPrices
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to fetch market analysis.' });
+  }
+};
+
+export const updatePlanPriceSetting = async (req: Request, res: Response) => {
+  const { provider, planCode, providerPrice, sellingPrice, resellerPrice } = req.body;
+
+  try {
+    const updated = await prisma.servicePrice.upsert({
+      where: { provider_planCode: { provider, planCode } },
+      update: {
+        providerPrice: parseFloat(providerPrice),
+        sellingPrice: parseFloat(sellingPrice),
+        resellerPrice: parseFloat(resellerPrice)
+      },
+      create: {
+        provider,
+        planCode,
+        providerPrice: parseFloat(providerPrice),
+        sellingPrice: parseFloat(sellingPrice),
+        resellerPrice: parseFloat(resellerPrice)
+      }
+    });
+
+    res.json({ success: true, priceRule: updated });
+  } catch (error: any) {
+    res.status(400).json({ error: 'Failed to update plan pricing rules.' });
+  }
+};

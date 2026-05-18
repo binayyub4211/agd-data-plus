@@ -22,6 +22,19 @@ export function UserSettingsPage() {
   const [passData, setPassData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' })
   const [selectedTheme, setSelectedTheme] = useState('DARK')
   const [profilePic, setProfilePic] = useState('')
+  
+  // Transaction PIN
+  const [hasPin, setHasPin] = useState(false)
+  const [pinForm, setPinForm] = useState({ password: '', newPin: '', confirmPin: '' })
+
+  const checkPinConfigured = async () => {
+    try {
+      const res = await api.get('/user/pin/configured')
+      setHasPin(res.data.configured)
+    } catch (e) {
+      console.error(e)
+    }
+  }
 
   const fetchProfile = async () => {
     try {
@@ -30,6 +43,7 @@ export function UserSettingsPage() {
       localStorage.setItem('user', JSON.stringify(res.data)) // Sync with local storage for header/footer
       setSelectedTheme(res.data.theme || 'DARK')
       setProfilePic(res.data.profilePicture || '')
+      checkPinConfigured()
     } catch {
       toast.error('Session expired')
       navigate('/auth/login')
@@ -71,6 +85,25 @@ export function UserSettingsPage() {
       setPassData({ currentPassword: '', newPassword: '', confirmPassword: '' })
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Password reset failed')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleUpdatePin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (pinForm.newPin.length !== 4) return toast.error('PIN must be exactly 4 digits')
+    setSaving(true)
+    try {
+      await api.post('/user/pin/set', {
+        password: pinForm.password,
+        pin: pinForm.newPin
+      })
+      toast.success('Transaction PIN updated successfully!')
+      setPinForm({ password: '', newPin: '', confirmPin: '' })
+      checkPinConfigured()
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to update Transaction PIN')
     } finally {
       setSaving(false)
     }
@@ -219,6 +252,68 @@ export function UserSettingsPage() {
                   />
                 </div>
                 <Button type="submit" variant="outline" className="w-full border-brand-royal/20" loading={saving}>Update Password</Button>
+              </form>
+            </Card>
+
+            {/* Transaction PIN Management */}
+            <Card className="p-8 border-brand-royal/10">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-brand-royal/10 rounded-lg text-brand-gold">
+                  <Lock size={18} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black uppercase tracking-widest">Transaction PIN</h3>
+                  <p className="text-xs text-brand-silver/20">
+                    {hasPin ? 'Change or reset your secure 4-digit transaction PIN' : 'Configure a 4-digit transaction PIN for purchases'}
+                  </p>
+                </div>
+              </div>
+              <form onSubmit={handleUpdatePin} className="space-y-4">
+                <Input 
+                  label="Account Password" 
+                  type="password" 
+                  value={pinForm.password}
+                  onChange={e => setPinForm({...pinForm, password: e.target.value})}
+                  placeholder="Confirm account password" 
+                  required
+                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-brand-silver/50">4-Digit PIN</label>
+                    <input 
+                      type="password" 
+                      maxLength={4}
+                      pattern="\d*"
+                      inputMode="numeric"
+                      value={pinForm.newPin}
+                      onChange={e => setPinForm({...pinForm, newPin: e.target.value.replace(/\D/g, '')})}
+                      placeholder="••••" 
+                      className="w-full bg-white/5 border border-brand-royal/10 rounded-xl py-3 px-4 text-center text-xl font-black text-brand-gold tracking-widest focus:outline-none focus:border-brand-gold transition-all"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-brand-silver/50">Confirm 4-Digit PIN</label>
+                    <input 
+                      type="password" 
+                      maxLength={4}
+                      pattern="\d*"
+                      inputMode="numeric"
+                      value={pinForm.confirmPin}
+                      onChange={e => setPinForm({...pinForm, confirmPin: e.target.value.replace(/\D/g, '')})}
+                      placeholder="••••" 
+                      className="w-full bg-white/5 border border-brand-royal/10 rounded-xl py-3 px-4 text-center text-xl font-black text-brand-gold tracking-widest focus:outline-none focus:border-brand-gold transition-all"
+                      required
+                    />
+                  </div>
+                </div>
+                <Button 
+                  type="submit" 
+                  disabled={saving || pinForm.newPin !== pinForm.confirmPin || pinForm.newPin.length !== 4} 
+                  className="w-full bg-brand-gold hover:bg-brand-gold/80 text-brand-midnight font-black shadow-[0_0_20px_rgba(251,191,36,0.15)]"
+                >
+                  {hasPin ? 'Update Transaction PIN' : 'Configure PIN'}
+                </Button>
               </form>
             </Card>
 

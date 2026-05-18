@@ -25,6 +25,7 @@ export function LoginPage() {
       localStorage.setItem('token', res.data.token)
       localStorage.setItem('refreshToken', res.data.refreshToken)
       localStorage.setItem('user', JSON.stringify(res.data.user))
+      sessionStorage.removeItem('dismissedAlertId')
       toast.success(`Welcome back, ${res.data.user.name.split(' ')[0]}!`)
       navigate('/dashboard')
     } catch (err: any) {

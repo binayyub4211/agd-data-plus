@@ -3,6 +3,7 @@ import { VtuEngine } from '../services/VtuEngine';
 import { prisma } from '../utils/prisma';
 import { ServiceType, TransactionStatus, Provider } from '../types/prisma';
 import { z } from 'zod';
+import bcrypt from 'bcryptjs';
 // @ts-ignore
 import { v4 as uuidv4 } from 'uuid';
 import { EmailService } from '../services/EmailService';
@@ -14,6 +15,7 @@ const purchaseSchema = z.object({
   phone: z.string().min(11),
   planCode: z.string(),
   amount: z.number().positive(),
+  pin: z.string().length(4),
 });
 
 export const purchaseService = async (req: Request, res: Response) => {
@@ -31,6 +33,15 @@ export const purchaseService = async (req: Request, res: Response) => {
 
       if (!user || !user.wallet) throw new Error('User or Wallet not found');
       
+      if (!user.transactionPin) {
+        throw new Error('PIN_NOT_SET');
+      }
+
+      const isPinMatch = await bcrypt.compare(validated.pin, user.transactionPin);
+      if (!isPinMatch) {
+        throw new Error('INCORRECT_PIN');
+      }
+
       if (user.wallet.balance < validated.amount) {
         throw new Error('Insufficient wallet balance');
       }
@@ -91,6 +102,64 @@ export const purchaseService = async (req: Request, res: Response) => {
           profit
         },
       });
+
+      // Check and execute Referral bonus if applicable
+      if (result.user.referredBy) {
+        try {
+          const referral = await prisma.referral.findFirst({
+            where: {
+              referredId: userId,
+              status: 'PENDING'
+            }
+          });
+
+          if (referral) {
+            // Reward the referrer
+            await prisma.$transaction(async (tx) => {
+              const referrerWallet = await tx.wallet.findUnique({
+                where: { userId: referral.referrerId }
+              });
+
+              if (referrerWallet) {
+                const updatedReferrerWallet = await tx.wallet.update({
+                  where: { id: referrerWallet.id },
+                  data: { balance: { increment: referral.bonusAmount } }
+                });
+
+                // Update Referral status to PAID
+                await tx.referral.update({
+                  where: { id: referral.id },
+                  data: { status: 'PAID' }
+                });
+
+                // Audit Log for Referrer
+                await tx.auditLog.create({
+                  data: {
+                    userId: referral.referrerId,
+                    action: 'CREDIT',
+                    amount: referral.bonusAmount,
+                    previousBalance: referrerWallet.balance,
+                    newBalance: updatedReferrerWallet.balance,
+                    description: `Referral bonus reward for inviting ${result.user.name}`
+                  }
+                });
+
+                // Notification for Referrer
+                await tx.notification.create({
+                  data: {
+                    userId: referral.referrerId,
+                    title: 'Referral Reward Credited! 🎁',
+                    message: `You earned ₦${referral.bonusAmount} because ${result.user.name} made their first purchase!`,
+                    type: 'SUCCESS'
+                  }
+                });
+              }
+            });
+          }
+        } catch (referralError) {
+          console.error('[Referral System] Failed to process referral payout:', referralError);
+        }
+      }
 
       const finalTransaction = await prisma.transaction.findUnique({
         where: { id: result.transaction.id }

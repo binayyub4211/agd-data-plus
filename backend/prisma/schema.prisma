@@ -43,6 +43,7 @@ model User {
 
   referralCode         String?  @unique @default(uuid())
   referredBy           String?
+  transactionPin       String?       // Hashed 4-digit PIN for purchases
 
   // Relations
   wallet         Wallet?
@@ -180,4 +181,13 @@ model SystemAlert {
   updatedAt DateTime @updatedAt
 
   @@map("system_alerts")
+}
+
+model SystemSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("system_settings")
 }

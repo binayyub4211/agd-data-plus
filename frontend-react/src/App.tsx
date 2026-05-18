@@ -11,14 +11,17 @@ import { ReferralsPage } from '@/pages/dashboard/ReferralsPage'
 import { BulkSmsPage } from '@/pages/dashboard/BulkSmsPage'
 import { UserSettingsPage } from '@/pages/dashboard/UserSettingsPage'
 import { ProfilePage } from '@/pages/dashboard/ProfilePage'
+import { TransactionsPage } from '@/pages/dashboard/TransactionsPage'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { GlobalAlertModal } from '@/components/layout/GlobalAlertModal'
+import { UpdateModal } from '@/components/layout/UpdateModal'
 
 export default function App() {
   return (
     <HashRouter>
       <ClientLayout>
         <GlobalAlertModal />
+        <UpdateModal />
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/auth/register" element={<RegisterPage />} />
@@ -62,6 +65,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/transactions"
+            element={
+              <ProtectedRoute>
+                <TransactionsPage />
               </ProtectedRoute>
             }
           />

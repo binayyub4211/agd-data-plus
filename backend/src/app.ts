@@ -8,6 +8,7 @@ import vtuRoutes from './routes/vtu.routes';
 import adminRoutes from './routes/admin.routes';
 import notificationRoutes from './routes/notification.routes';
 import userRoutes from './routes/user.routes';
+import systemRoutes from './routes/system.routes';
 import { paystackWebhook } from './controllers/webhook.controller';
 
 const app = express();
@@ -56,6 +57,7 @@ app.use('/api/vtu', vtuRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/system', systemRoutes);
 
 // Healthcheck route
 app.get('/health', (req, res) => {

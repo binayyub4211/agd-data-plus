@@ -15,12 +15,18 @@ import {
   Wifi, Smartphone, Zap, Monitor, LogOut, User, Bell, Clock, ArrowDownLeft, Settings
 } from 'lucide-react'
 
-const SERVICES = [
+const PRIMARY_SERVICES = [
   { id: 'DATA',        name: 'Buy Data',    icon: Wifi,        border: 'border-blue-500/30',   glow: 'group-hover:bg-brand-royal/30'  },
   { id: 'AIRTIME',     name: 'Airtime',     icon: Smartphone,  border: 'border-green-500/30',  glow: 'group-hover:bg-green-500/20'    },
   { id: 'ELECTRICITY', name: 'Electricity', icon: Zap,         border: 'border-brand-gold/30', glow: 'group-hover:bg-brand-gold/20'   },
   { id: 'CABLE',       name: 'Cable TV',    icon: Monitor,     border: 'border-purple-500/30', glow: 'group-hover:bg-purple-500/20'   },
+]
+
+const SECONDARY_SERVICES = [
   { id: 'SMS',         name: 'Bulk SMS',    icon: Mail,        border: 'border-brand-cyan/30', glow: 'group-hover:bg-brand-cyan/20'   },
+  { id: 'EXAM',        name: 'Exam PINs',   icon: ShieldCheck, border: 'border-red-500/30',    glow: 'group-hover:bg-red-500/20'      },
+  { id: 'SPECTRANET',  name: 'Spectranet',  icon: Wifi,        border: 'border-orange-500/30', glow: 'group-hover:bg-orange-500/20'  },
+  { id: 'SMILE',       name: 'Smile 4G',    icon: Wifi,        border: 'border-yellow-500/30', glow: 'group-hover:bg-yellow-500/20'  },
 ]
 
 const fadeUp = {
@@ -30,6 +36,27 @@ const fadeUp = {
     transition: { delay: i * 0.08, duration: 0.4 },
   }),
 }
+
+const PROMOS = [
+  {
+    title: 'Refer & Earn Unlimited Cash',
+    desc: 'Get ₦100 instantly credited to your wallet when your invitee completes their first transaction!',
+    btnText: 'Invite Friends Now',
+    route: '/referrals',
+  },
+  {
+    title: 'Secure Your Wallet Balance',
+    desc: 'Enable a secure 4-digit transaction PIN inside your settings to prevent unauthorized purchases.',
+    btnText: 'Setup Security PIN',
+    route: '/dashboard/settings',
+  },
+  {
+    title: 'Claim Elite Wholesale Ranks',
+    desc: 'Accumulate purchases to unlock Silver, Gold, and Platinum agent tiers for premium discounts.',
+    btnText: 'Check Loyalty Level',
+    route: '/dashboard/profile',
+  }
+]
 
 export function DashboardPage() {
   const navigate = useNavigate()
@@ -43,6 +70,17 @@ export function DashboardPage() {
   const [isReceiptOpen, setIsReceiptOpen] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [procStatus, setProcStatus] = useState<'processing' | 'success'>('processing')
+  const [showMoreServices, setShowMoreServices] = useState(false)
+  
+  // Promo slider index
+  const [currentPromo, setCurrentPromo] = useState(0)
+
+  useEffect(() => {
+    const promoTimer = setInterval(() => {
+      setCurrentPromo(prev => (prev + 1) % PROMOS.length)
+    }, 6000)
+    return () => clearInterval(promoTimer)
+  }, [])
 
   const fetchProfile = async (silent = false) => {
     try {
@@ -131,6 +169,28 @@ export function DashboardPage() {
   const firstName = user?.name?.split(' ')[0] ?? 'User'
   const balance = Number(user?.wallet?.balance ?? 0)
 
+  // Dynamic Loyalty Tier system
+  const totalSpent = transactions
+    .filter((tx: any) => tx.status === 'SUCCESS')
+    .reduce((sum: number, tx: any) => sum + tx.amount, 0)
+
+  let loyaltyTier = 'Silver Client'
+  let nextTier = 'Gold VIP'
+  let nextThreshold = 10000
+  let badgeColor = 'text-brand-silver border-brand-silver/20 bg-brand-silver/5'
+
+  if (totalSpent >= 50000) {
+    loyaltyTier = 'Platinum VIP'
+    nextTier = 'Ultimate Status'
+    nextThreshold = 50000
+    badgeColor = 'text-brand-gold border-brand-gold/30 bg-brand-gold/5 shadow-[0_0_15px_rgba(251,191,36,0.15)] animate-pulse'
+  } else if (totalSpent >= 10000) {
+    loyaltyTier = 'Gold VIP'
+    nextTier = 'Platinum VIP'
+    nextThreshold = 50000
+    badgeColor = 'text-brand-cyan border-brand-cyan/30 bg-brand-cyan/5 shadow-[0_0_15px_rgba(0,212,255,0.15)] animate-pulse'
+  }
+
   return (
     <div className="min-h-screen bg-brand-midnight text-white">
       {/* Top Nav */}
@@ -184,11 +244,33 @@ export function DashboardPage() {
 
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-10 space-y-10">
         {/* Greeting */}
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-          <p className="text-brand-silver/40 text-sm uppercase tracking-widest mb-1">Good day</p>
-          <h1 className="text-3xl md:text-4xl font-black font-display">
-            Hello, <span className="bg-clip-text text-transparent bg-gradient-to-r from-brand-cyan to-brand-gold">{firstName}!</span>
-          </h1>
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-brand-royal/10 pb-6">
+          <div>
+            <p className="text-brand-silver/40 text-sm uppercase tracking-widest mb-1">Good day</p>
+            <h1 className="text-3xl md:text-4xl font-black font-display flex items-center flex-wrap gap-2">
+              Hello, <span className="bg-clip-text text-transparent bg-gradient-to-r from-brand-cyan to-brand-gold">{firstName}!</span>
+              <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border ${badgeColor}`}>
+                {loyaltyTier}
+              </span>
+            </h1>
+          </div>
+          {totalSpent < 50000 && (
+            <div className="shrink-0 bg-white/5 border border-brand-royal/10 rounded-2xl p-4 min-w-[260px]">
+              <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-brand-silver mb-1.5">
+                <span>Loyalty Spending: ₦{totalSpent.toLocaleString()}</span>
+                <span className="text-brand-cyan">Goal: ₦{nextThreshold.toLocaleString()}</span>
+              </div>
+              <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-brand-cyan to-brand-gold rounded-full transition-all duration-500" 
+                  style={{ width: `${Math.min(100, (totalSpent / nextThreshold) * 100)}%` }} 
+                />
+              </div>
+              <p className="text-[8px] font-bold text-brand-silver/30 mt-1.5 uppercase tracking-wider">
+                Spend ₦{(nextThreshold - totalSpent).toLocaleString()} more to claim {nextTier}!
+              </p>
+            </div>
+          )}
         </motion.div>
 
         {/* Balance + Virtual Account */}
@@ -332,11 +414,56 @@ export function DashboardPage() {
           </motion.div>
         </div>
 
+        {/* Sliding Promotional Banners */}
+        <div className="relative overflow-hidden rounded-3xl border border-brand-royal/20 bg-brand-royal/5 p-8 backdrop-blur-xl">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-brand-cyan/5 rounded-full blur-3xl pointer-events-none" />
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentPromo}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10"
+            >
+              <div className="space-y-2">
+                <span className="px-3 py-1 bg-brand-cyan/10 text-brand-cyan text-[9px] font-black uppercase tracking-[0.2em] rounded-full border border-brand-cyan/20">
+                  EXCLUSIVE CAMPAIGN
+                </span>
+                <h3 className="text-2xl font-black font-display text-white tracking-tight mt-2">
+                  {PROMOS[currentPromo].title}
+                </h3>
+                <p className="text-brand-silver/50 text-xs md:text-sm max-w-xl leading-relaxed">
+                  {PROMOS[currentPromo].desc}
+                </p>
+              </div>
+              <Button
+                onClick={() => navigate(PROMOS[currentPromo].route)}
+                className="shrink-0 bg-white text-brand-midnight hover:bg-brand-silver font-black text-xs uppercase tracking-widest px-6 h-12 shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all"
+              >
+                {PROMOS[currentPromo].btnText}
+              </Button>
+            </motion.div>
+          </AnimatePresence>
+          {/* Indicators */}
+          <div className="flex gap-1.5 mt-6 justify-start">
+            {PROMOS.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setCurrentPromo(idx)}
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  currentPromo === idx ? 'w-6 bg-brand-cyan' : 'w-1.5 bg-white/10'
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+
         {/* Service Cards */}
         <div>
           <h2 className="text-xl font-black text-white mb-6 font-display">Digital Services</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {SERVICES.map((svc, i) => (
+            {PRIMARY_SERVICES.map((svc, i) => (
               <motion.button
                 key={svc.id}
                 custom={i}
@@ -344,11 +471,7 @@ export function DashboardPage() {
                 initial="hidden"
                 animate="show"
                 onClick={() => {
-                  if (svc.id === 'SMS') {
-                    navigate('/bulksms')
-                  } else {
-                    setModalService(svc.id)
-                  }
+                  setModalService(svc.id)
                 }}
                 className={`group flex flex-col items-center justify-center p-8 rounded-3xl border ${svc.border} bg-brand-midnight/60 backdrop-blur-xl transition-all active:scale-95 hover:-translate-y-2 hover:shadow-[0_8px_32px_rgba(0,0,0,0.3)]`}
               >
@@ -361,13 +484,61 @@ export function DashboardPage() {
               </motion.button>
             ))}
           </div>
+
+          <AnimatePresence>
+            {showMoreServices && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="overflow-hidden mt-4"
+              >
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
+                  {SECONDARY_SERVICES.map((svc, i) => (
+                    <motion.button
+                      key={svc.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                      onClick={() => {
+                        if (svc.id === 'SMS') {
+                          navigate('/bulksms')
+                        } else {
+                          setModalService(svc.id)
+                        }
+                      }}
+                      className={`group flex flex-col items-center justify-center p-8 rounded-3xl border ${svc.border} bg-brand-midnight/60 backdrop-blur-xl transition-all active:scale-95 hover:-translate-y-2 hover:shadow-[0_8px_32px_rgba(0,0,0,0.3)]`}
+                    >
+                      <div className={`w-14 h-14 rounded-2xl bg-white/5 ${svc.glow} mb-4 transition-all flex items-center justify-center`}>
+                        <svc.icon className="text-brand-silver/40 group-hover:text-white transition-colors" size={24} />
+                      </div>
+                      <span className="text-xs font-black text-brand-silver/60 group-hover:text-white uppercase tracking-widest transition-colors">
+                        {svc.name}
+                      </span>
+                    </motion.button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <div className="mt-6 flex justify-center">
+            <Button
+              variant="outline"
+              onClick={() => setShowMoreServices(!showMoreServices)}
+              className="border-brand-royal/20 text-brand-silver/50 text-[10px] font-black uppercase tracking-widest px-6"
+            >
+              {showMoreServices ? 'Hide Secondary Services' : 'View More Services'}
+            </Button>
+          </div>
         </div>
 
         {/* Recent Transactions */}
         <div>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-black text-white font-display">Recent Activity</h2>
-            <button className="text-brand-cyan text-xs font-black uppercase tracking-widest hover:underline">View All</button>
+            <button onClick={() => navigate('/dashboard/transactions')} className="text-brand-cyan text-xs font-black uppercase tracking-widest hover:underline">View All</button>
           </div>
           
           {transactions.length > 0 ? (
