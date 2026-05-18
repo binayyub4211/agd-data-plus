@@ -9,6 +9,10 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  build: {
+    target: 'es2015', // Transpiles modern features (optional chaining, nullish coalescing) for old iOS Safari compatibility
+    cssTarget: 'chrome61', // Ensures CSS properties are also cross-compatible
+  },
   server: {
     port: 5173,
     proxy: {

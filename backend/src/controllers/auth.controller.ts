@@ -272,8 +272,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
-      // Return success even if user not found for security (prevent email enumeration)
-      return res.json({ message: 'If that email exists, a reset link has been sent.' });
+      return res.status(404).json({ error: 'This email address is not registered with AGD Data Plus.' });
     }
 
     // Generate a secure reset token
