@@ -31,17 +31,11 @@ export class VtuEngine {
   private async handleAirtimePurchase(request: BuyRequest) {
     try {
       // 1. Primary: CheapDataHub
-      const oldBalance = await this.cheapDataHub.checkBalance();
       const response = await this.cheapDataHub.buyAirtime(request);
-      const newBalance = await this.cheapDataHub.checkBalance();
-      const costPrice = (oldBalance > 0 && newBalance >= 0) ? (oldBalance - newBalance) : null;
       
-      // If costPrice is exactly 0, CheapDataHub silently refunded it
-      if (costPrice === 0) {
-        console.error(`[VtuEngine] CheapDataHub silently refunded Airtime! Balances matched: ${oldBalance}`);
-        throw new Error('Provider rejected or refunded transaction silently');
-      }
-
+      // Calculate wholesale cost price based on standard 3% reseller discount for Airtime
+      const costPrice = request.amount * 0.97;
+      
       return { success: true, providerUsed: this.cheapDataHub.name, response, costPrice };
     } catch (primaryError: any) {
       console.warn(`[VtuEngine] Primary Provider (CheapDataHub) failed for Airtime. Initiating FAILOVER to VTpass...`);
@@ -66,16 +60,10 @@ export class VtuEngine {
   private async handleDataPurchase(request: BuyRequest) {
     try {
       // 1. Primary: CheapDataHub
-      const oldBalance = await this.cheapDataHub.checkBalance();
       const response = await this.cheapDataHub.buyData(request);
-      const newBalance = await this.cheapDataHub.checkBalance();
-      const costPrice = (oldBalance > 0 && newBalance >= 0) ? (oldBalance - newBalance) : null;
       
-      // If costPrice is exactly 0, CheapDataHub silently refunded it
-      if (costPrice === 0) {
-        console.error(`[VtuEngine] CheapDataHub silently refunded Data! Balances matched: ${oldBalance}`);
-        throw new Error('Provider rejected or refunded transaction silently');
-      }
+      // Calculate wholesale cost price based on standard 5% reseller margin for Data bundles
+      const costPrice = request.amount * 0.95;
 
       return { success: true, providerUsed: this.cheapDataHub.name, response, costPrice };
     } catch (primaryError: any) {
