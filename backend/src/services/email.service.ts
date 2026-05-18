@@ -67,6 +67,21 @@ export class EmailService {
     return this.sendEmail(email, `Reset Your Password - ${this.BRAND_NAME}`, html);
   }
 
+  static async sendPurchaseReceipt(email: string, name: string, serviceType: string, amount: number, reference: string) {
+    const html = this.getBaseTemplate(`
+      <h2 style="color: #333;">Purchase Successful!</h2>
+      <p style="color: #555;">Hi ${name}, your transaction details are below:</p>
+      <div style="background-color: #f9f9f9; border-left: 4px solid ${this.PRIMARY_COLOR}; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <p style="margin: 5px 0; color: #555;"><strong>Service:</strong> ${serviceType}</p>
+        <p style="margin: 5px 0; color: #555;"><strong>Amount:</strong> ₦${amount.toLocaleString()}</p>
+        <p style="margin: 5px 0; color: #555;"><strong>Reference:</strong> ${reference}</p>
+        <p style="margin: 5px 0; color: #22c55e;"><strong>Status:</strong> Success</p>
+      </div>
+      <p style="color: #555;">Thank you for choosing AGD Data Plus!</p>
+    `);
+    return this.sendEmail(email, `Receipt: ${serviceType} Purchase`, html);
+  }
+
   static async sendAdminBroadcastEmail(email: string, subject: string, message: string) {
     const html = this.getBaseTemplate(`
       <h2 style="color: #333;">Notification from Admin</h2>

@@ -6,7 +6,7 @@ import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 // @ts-ignore
 import { v4 as uuidv4 } from 'uuid';
-import { EmailService } from '../services/EmailService';
+import { EmailService } from '../services/email.service';
 
 const vtuEngine = new VtuEngine();
 
