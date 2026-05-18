@@ -481,7 +481,7 @@ export const getMarketAnalysis = async (req: Request, res: Response) => {
 };
 
 export const updatePlanPriceSetting = async (req: Request, res: Response) => {
-  const { provider, planCode, providerPrice, sellingPrice, resellerPrice } = req.body;
+  const { provider, planCode, providerPrice, sellingPrice, resellerPrice, serviceType = 'DATA' } = req.body;
 
   try {
     const updated = await prisma.servicePrice.upsert({
@@ -489,11 +489,13 @@ export const updatePlanPriceSetting = async (req: Request, res: Response) => {
       update: {
         providerPrice: parseFloat(providerPrice),
         sellingPrice: parseFloat(sellingPrice),
-        resellerPrice: parseFloat(resellerPrice)
+        resellerPrice: parseFloat(resellerPrice),
+        serviceType
       },
       create: {
         provider,
         planCode,
+        serviceType,
         providerPrice: parseFloat(providerPrice),
         sellingPrice: parseFloat(sellingPrice),
         resellerPrice: parseFloat(resellerPrice)
