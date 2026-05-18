@@ -114,50 +114,24 @@ export const purchaseService = async (req: Request, res: Response) => {
           });
 
           if (referral) {
-            // Reward the referrer
-            await prisma.$transaction(async (tx) => {
-              const referrerWallet = await tx.wallet.findUnique({
-                where: { userId: referral.referrerId }
-              });
+            // Update Referral status to SUCCESS (awaiting Admin payout)
+            await prisma.referral.update({
+              where: { id: referral.id },
+              data: { status: 'SUCCESS' }
+            });
 
-              if (referrerWallet) {
-                const updatedReferrerWallet = await tx.wallet.update({
-                  where: { id: referrerWallet.id },
-                  data: { balance: { increment: referral.bonusAmount } }
-                });
-
-                // Update Referral status to PAID
-                await tx.referral.update({
-                  where: { id: referral.id },
-                  data: { status: 'PAID' }
-                });
-
-                // Audit Log for Referrer
-                await tx.auditLog.create({
-                  data: {
-                    userId: referral.referrerId,
-                    action: 'CREDIT',
-                    amount: referral.bonusAmount,
-                    previousBalance: referrerWallet.balance,
-                    newBalance: updatedReferrerWallet.balance,
-                    description: `Referral bonus reward for inviting ${result.user.name}`
-                  }
-                });
-
-                // Notification for Referrer
-                await tx.notification.create({
-                  data: {
-                    userId: referral.referrerId,
-                    title: 'Referral Reward Credited! 🎁',
-                    message: `You earned ₦${referral.bonusAmount} because ${result.user.name} made their first purchase!`,
-                    type: 'SUCCESS'
-                  }
-                });
+            // Notification for Referrer
+            await prisma.notification.create({
+              data: {
+                userId: referral.referrerId,
+                title: 'Referral Completed! 🎁',
+                message: `Your referral of ${result.user.name} was successful! The admin will review and credit your ₦${referral.bonusAmount} reward shortly.`,
+                type: 'SUCCESS'
               }
             });
           }
         } catch (referralError) {
-          console.error('[Referral System] Failed to process referral payout:', referralError);
+          console.error('[Referral System] Failed to process referral success:', referralError);
         }
       }
 

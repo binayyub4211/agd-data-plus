@@ -560,3 +560,101 @@ export const updatePlanPriceSetting = async (req: Request, res: Response) => {
     res.status(400).json({ error: 'Failed to update plan pricing rules.' });
   }
 };
+
+export const getReferralsAdmin = async (req: Request, res: Response) => {
+  try {
+    const referrals = await prisma.referral.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+
+    const referralData = await Promise.all(referrals.map(async (ref) => {
+      const [referrer, referred] = await Promise.all([
+        prisma.user.findUnique({
+          where: { id: ref.referrerId },
+          select: { name: true, email: true, phone: true }
+        }),
+        prisma.user.findUnique({
+          where: { id: ref.referredId },
+          select: { name: true, email: true, phone: true }
+        })
+      ]);
+
+      return {
+        id: ref.id,
+        referrerName: referrer?.name || 'Unknown Referrer',
+        referrerEmail: referrer?.email || '',
+        referredName: referred?.name || 'Unknown User',
+        referredEmail: referred?.email || '',
+        bonusAmount: ref.bonusAmount,
+        status: ref.status,
+        createdAt: ref.createdAt
+      };
+    }));
+
+    res.json(referralData);
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to retrieve referrals.' });
+  }
+};
+
+export const rewardReferralAdmin = async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    const referral = await prisma.referral.findUnique({ where: { id } });
+    if (!referral) return res.status(404).json({ error: 'Referral not found.' });
+
+    if (referral.status !== 'SUCCESS') {
+      return res.status(400).json({ error: 'Referral must have a SUCCESS status to be rewarded.' });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const referrerWallet = await tx.wallet.findUnique({
+        where: { userId: referral.referrerId }
+      });
+
+      if (!referrerWallet) throw new Error('Referrer wallet not found');
+
+      const updatedWallet = await tx.wallet.update({
+        where: { id: referrerWallet.id },
+        data: { balance: { increment: referral.bonusAmount } }
+      });
+
+      const updatedReferral = await tx.referral.update({
+        where: { id: referral.id },
+        data: { status: 'PAID' }
+      });
+
+      const referredUser = await tx.user.findUnique({
+        where: { id: referral.referredId },
+        select: { name: true }
+      });
+
+      await tx.auditLog.create({
+        data: {
+          userId: referral.referrerId,
+          action: 'CREDIT',
+          amount: referral.bonusAmount,
+          previousBalance: referrerWallet.balance,
+          newBalance: updatedWallet.balance,
+          description: `Manual admin referral reward for inviting ${referredUser?.name || 'User'}`
+        }
+      });
+
+      await tx.notification.create({
+        data: {
+          userId: referral.referrerId,
+          title: 'Referral Reward Credited! 🎁',
+          message: `Admin has approved and credited your ₦${referral.bonusAmount} referral bonus for inviting ${referredUser?.name || 'User'}!`,
+          type: 'SUCCESS'
+        }
+      });
+
+      return updatedReferral;
+    });
+
+    res.json({ success: true, message: 'Referrer rewarded successfully!', referral: result });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message || 'Failed to reward referrer.' });
+  }
+};

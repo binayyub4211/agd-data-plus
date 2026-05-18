@@ -138,8 +138,17 @@ export const register = async (req: Request, res: Response) => {
               status: 'PENDING'
             }
           });
+
+          await tx.notification.create({
+            data: {
+              userId: referrerId,
+              title: 'New Referral Registered! 👥',
+              message: `${user.name} signed up using your referral link. Status: PENDING until their first purchase!`,
+              type: 'INFO'
+            }
+          });
         } catch (e) {
-          console.error('Failed to create referral record:', e);
+          console.error('Failed to create referral record/notification:', e);
         }
       }
 

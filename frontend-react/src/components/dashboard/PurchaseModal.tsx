@@ -63,6 +63,8 @@ const DATA_PLANS: Record<string, { id: string; name: string; price: number }[]> 
   ]
 }
 
+import { ReceiptModal } from './ReceiptModal'
+
 export function PurchaseModal({ isOpen, onClose, serviceType, refreshProfile }: PurchaseModalProps) {
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({ phone: '', planCode: '', amount: '' })
@@ -76,6 +78,12 @@ export function PurchaseModal({ isOpen, onClose, serviceType, refreshProfile }: 
   // Create PIN form fields
   const [setupPassword, setSetupPassword] = useState('')
   const [setupPin, setSetupPin] = useState('')
+
+  // Animated Purchase States
+  const [purchaseState, setPurchaseState] = useState<'IDLE' | 'PROCESSING' | 'SUCCESS' | 'FAILURE'>('IDLE')
+  const [createdTransaction, setCreatedTransaction] = useState<any>(null)
+  const [errorMessage, setErrorMessage] = useState('')
+  const [showReceipt, setShowReceipt] = useState(false)
 
   const meta = SERVICE_META[serviceType] ?? SERVICE_META['DATA']
   const Icon = meta.icon
@@ -140,7 +148,7 @@ export function PurchaseModal({ isOpen, onClose, serviceType, refreshProfile }: 
     }
 
     setLoading(true)
-    window.dispatchEvent(new CustomEvent('purchase-start'))
+    setPurchaseState('PROCESSING')
     
     try {
       const response = await api.post(
@@ -155,16 +163,14 @@ export function PurchaseModal({ isOpen, onClose, serviceType, refreshProfile }: 
       )
       toast.success(`${meta.label} purchase successful!`)
       refreshProfile()
-      onClose()
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('purchase-success', { detail: response.data.transaction }))
-      }, 500)
+      setCreatedTransaction(response.data.transaction)
+      setPurchaseState('SUCCESS')
     } catch (err: any) {
-      // If incorrect PIN
+      setPurchaseState('FAILURE')
       if (err.response?.data?.error === 'INCORRECT_PIN') {
-        toast.error('Incorrect Transaction PIN. Access Denied.')
+        setErrorMessage('Incorrect Transaction PIN. Access Denied.')
       } else {
-        toast.error(err.response?.data?.error ?? 'Purchase failed. Please try again.')
+        setErrorMessage(err.response?.data?.error ?? 'Purchase failed. Please try again.')
       }
     } finally {
       setLoading(false)
@@ -220,7 +226,122 @@ export function PurchaseModal({ isOpen, onClose, serviceType, refreshProfile }: 
                   </button>
                 </div>
 
-                {step === 1 && (
+                {purchaseState === 'PROCESSING' && (
+                  <div className="text-center py-12 space-y-6">
+                    <div className="relative w-24 h-24 mx-auto">
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ repeat: Infinity, duration: 1.5, ease: 'linear' }}
+                        className="w-full h-full rounded-full border-4 border-brand-cyan/20 border-t-brand-cyan"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Icon size={28} className={`${meta.color} animate-pulse`} />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <h4 className="text-lg font-black text-white uppercase tracking-widest font-display">Processing Transaction</h4>
+                      <p className="text-brand-silver/50 text-xs px-8">Securing connection to AGD Core Engine & communicating with provider. Please do not close or refresh this window.</p>
+                    </div>
+
+                    <div className="max-w-[240px] mx-auto h-1.5 bg-brand-royal/10 rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: '0%' }}
+                        animate={{ width: '90%' }}
+                        transition={{ duration: 4, ease: 'easeOut' }}
+                        className="h-full bg-gradient-to-r from-brand-royal to-brand-cyan"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {purchaseState === 'SUCCESS' && (
+                  <div className="text-center py-8 space-y-6">
+                    <motion.div 
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1, type: 'spring', stiffness: 200, damping: 15 }}
+                      className="w-20 h-20 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center mx-auto shadow-[0_0_30px_rgba(34,197,94,0.2)]"
+                    >
+                      <Check className="text-green-500" size={36} />
+                    </motion.div>
+
+                    <div className="space-y-2">
+                      <h4 className="text-xl font-black text-white uppercase tracking-widest font-display">Purchase Successful!</h4>
+                      <p className="text-brand-silver/50 text-xs px-6">Your transaction has been approved and processed successfully.</p>
+                    </div>
+
+                    <div className="bg-brand-royal/5 border border-brand-royal/10 rounded-2xl p-4 max-w-[280px] mx-auto text-left space-y-2">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-brand-silver/40">Amount:</span>
+                        <span className="text-white font-bold">₦{Number(form.amount).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-brand-silver/40">Recipient:</span>
+                        <span className="text-white font-bold">{form.phone}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-3 max-w-[280px] mx-auto mt-6">
+                      <Button onClick={() => setShowReceipt(true)} className="bg-brand-cyan hover:bg-brand-cyan/90 text-brand-midnight font-black shadow-[0_0_20px_rgba(0,212,255,0.2)]">
+                        View Official Receipt
+                      </Button>
+                      <button 
+                        onClick={() => {
+                          setPurchaseState('IDLE');
+                          setStep(1);
+                          setPinCode('');
+                          onClose();
+                        }} 
+                        className="text-xs text-brand-silver/40 hover:text-white transition-colors"
+                      >
+                        Return to Dashboard
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {purchaseState === 'FAILURE' && (
+                  <div className="text-center py-8 space-y-6">
+                    <motion.div 
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1, type: 'spring', stiffness: 200, damping: 15 }}
+                      className="w-20 h-20 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto shadow-[0_0_30px_rgba(239,68,68,0.2)]"
+                    >
+                      <X className="text-red-500" size={36} />
+                    </motion.div>
+
+                    <div className="space-y-2">
+                      <h4 className="text-xl font-black text-red-500 uppercase tracking-widest font-display">Transaction Failed</h4>
+                      <p className="text-brand-silver/50 text-xs px-6">{errorMessage || 'Your transaction could not be processed. Please check your balance or try again.'}</p>
+                    </div>
+
+                    <div className="flex flex-col gap-3 max-w-[280px] mx-auto mt-6">
+                      <Button 
+                        onClick={() => {
+                          setPurchaseState('IDLE');
+                          setStep(1);
+                          setPinCode('');
+                        }} 
+                        className="bg-brand-royal hover:bg-brand-royal/90 text-white font-bold"
+                      >
+                        Try Again
+                      </Button>
+                      <button 
+                        onClick={() => {
+                          setPurchaseState('IDLE');
+                          setStep(1);
+                          setPinCode('');
+                          onClose();
+                        }} 
+                        className="text-xs text-brand-silver/40 hover:text-white transition-colors"
+                      >
+                        Return to Dashboard
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {purchaseState === 'IDLE' && step === 1 && (
                   <form onSubmit={handleFirstStepSubmit} className="space-y-6">
                     {/* Network Selector */}
                     {(serviceType === 'DATA' || serviceType === 'AIRTIME') && (
@@ -342,7 +463,7 @@ export function PurchaseModal({ isOpen, onClose, serviceType, refreshProfile }: 
                   </form>
                 )}
 
-                {step === 2 && (
+                {purchaseState === 'IDLE' && step === 2 && (
                   <form onSubmit={handlePurchaseSubmit} className="space-y-6 text-center">
                     <div className="w-16 h-16 rounded-2xl bg-brand-cyan/10 border border-brand-cyan/20 flex items-center justify-center mx-auto mb-4 shadow-[0_0_20px_rgba(0,212,255,0.1)]">
                       <Lock className="text-brand-cyan" size={28} />
@@ -379,7 +500,7 @@ export function PurchaseModal({ isOpen, onClose, serviceType, refreshProfile }: 
                   </form>
                 )}
 
-                {step === 3 && (
+                {purchaseState === 'IDLE' && step === 3 && (
                   <form onSubmit={handleCreatePin} className="space-y-6">
                     <div className="w-16 h-16 rounded-2xl bg-brand-gold/10 border border-brand-gold/20 flex items-center justify-center mx-auto mb-4 shadow-[0_0_20px_rgba(251,191,36,0.1)]">
                       <KeyRound className="text-brand-gold" size={28} />
@@ -429,6 +550,21 @@ export function PurchaseModal({ isOpen, onClose, serviceType, refreshProfile }: 
               </div>
             </div>
           </motion.div>
+          
+          {/* Dynamic Receipt Modal Overlay on Success */}
+          {createdTransaction && (
+            <ReceiptModal
+              isOpen={showReceipt}
+              onClose={() => {
+                setShowReceipt(false)
+                setPurchaseState('IDLE')
+                setStep(1)
+                setPinCode('')
+                onClose()
+              }}
+              transaction={createdTransaction}
+            />
+          )}
         </>
       )}
     </AnimatePresence>

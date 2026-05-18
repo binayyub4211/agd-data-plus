@@ -12,7 +12,9 @@ import {
   adjustUserWallet,
   getAllTransactionsAdmin,
   getMarketAnalysis,
-  updatePlanPriceSetting
+  updatePlanPriceSetting,
+  getReferralsAdmin,
+  rewardReferralAdmin
 } from '../controllers/admin.controller';
 import { updateSystemVersion } from '../controllers/version.controller';
 import { protect } from '../middleware/auth.middleware';
@@ -34,6 +36,8 @@ router.get('/market', getMarketAnalysis);
 router.post('/pricing', updatePlanPriceSetting);
 router.post('/accounts/regenerate', generateMissingAccounts);
 router.post('/accounts/generate/:userId', generateSingleAccount);
+router.get('/referrals', getReferralsAdmin);
+router.post('/referrals/reward/:id', rewardReferralAdmin);
 router.post('/broadcast', broadcastNotification);
 router.post('/alert', createSystemAlert);
 router.delete('/alert', deleteSystemAlert);

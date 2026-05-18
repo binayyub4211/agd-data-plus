@@ -20,8 +20,8 @@ export function AdminPage() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   
-  // Tab controller: 'users' | 'transactions' | 'market'
-  const [activeTab, setActiveTab] = useState<'users' | 'transactions' | 'market'>('users')
+  // Tab controller: 'users' | 'transactions' | 'market' | 'referrals'
+  const [activeTab, setActiveTab] = useState<'users' | 'transactions' | 'market' | 'referrals'>('users')
 
   // Wallet adjustment state
   const [creditModal, setCreditModal] = useState<{ isOpen: boolean, userId: string, name: string }>({ isOpen: false, userId: '', name: '' })
@@ -34,6 +34,10 @@ export function AdminPage() {
   const [txSearch, setTxSearch] = useState('')
   const [txPage, setTxPage] = useState(1)
   const [txTotalPages, setTxTotalPages] = useState(1)
+
+  // Referral state
+  const [referrals, setReferrals] = useState<any[]>([])
+  const [loadingReferrals, setLoadingReferrals] = useState(false)
 
   // Market & Pricing settings state
   const [marketAnalysis, setMarketAnalysis] = useState<any>(null)
@@ -81,6 +85,29 @@ export function AdminPage() {
     }
   }
 
+  const fetchReferrals = async () => {
+    setLoadingReferrals(true)
+    try {
+      const res = await api.get('/admin/referrals')
+      setReferrals(res.data)
+    } catch (err) {
+      console.error('Failed to load referrals data')
+    } finally {
+      setLoadingReferrals(false)
+    }
+  }
+
+  const handleRewardReferral = async (referralId: string) => {
+    try {
+      await api.post(`/admin/referrals/reward/${referralId}`)
+      toast.success('Referral reward successfully approved and credited!')
+      fetchReferrals()
+      fetchData()
+    } catch (err: any) {
+      toast.error(err.response?.data?.error ?? 'Failed to reward referrer.')
+    }
+  }
+
   useEffect(() => {
     fetchData()
     const interval = setInterval(fetchData, 30000)
@@ -92,6 +119,8 @@ export function AdminPage() {
       fetchTransactions()
     } else if (activeTab === 'market') {
       fetchMarketData()
+    } else if (activeTab === 'referrals') {
+      fetchReferrals()
     }
   }, [activeTab, txSearch, txPage])
 
@@ -353,6 +382,14 @@ export function AdminPage() {
             }`}
           >
             Market & Plan Pricing Margins
+          </button>
+          <button
+            onClick={() => setActiveTab('referrals')}
+            className={`px-6 py-4 font-black uppercase tracking-wider text-xs font-display transition-all relative ${
+              activeTab === 'referrals' ? 'text-brand-cyan border-b-2 border-brand-cyan' : 'text-brand-silver/40 hover:text-white'
+            }`}
+          >
+            Referrals & Rewards Manager
           </button>
         </div>
 
@@ -644,6 +681,85 @@ export function AdminPage() {
                     ))
                   )}
                 </div>
+              </>
+            )}
+
+            {activeTab === 'referrals' && (
+              <>
+                <h2 className="text-xl font-black font-display uppercase tracking-widest">Referral Systems & Rewards</h2>
+                <p className="text-xs text-brand-silver/40">Track registered referrals and manually trigger payout when transactions qualify.</p>
+
+                <Card className="overflow-hidden border-brand-royal/10 bg-white/[0.02] mt-4">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-white/5 text-[10px] uppercase tracking-widest text-brand-silver/40 font-black border-b border-brand-royal/10">
+                        <th className="px-6 py-4">Referrer</th>
+                        <th className="px-6 py-4">Referred Agent</th>
+                        <th className="px-6 py-4">Bonus</th>
+                        <th className="px-6 py-4">Status</th>
+                        <th className="px-6 py-4 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-brand-royal/10">
+                      {loadingReferrals ? (
+                        <tr>
+                          <td colSpan={5} className="px-6 py-12 text-center text-brand-silver/20 text-xs font-bold uppercase tracking-widest">
+                            <div className="w-6 h-6 border-2 border-brand-cyan/30 border-t-brand-cyan rounded-full animate-spin mx-auto" />
+                          </td>
+                        </tr>
+                      ) : referrals.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="px-6 py-12 text-center text-brand-silver/20 text-xs font-bold uppercase tracking-widest italic">
+                            No referrals logged in system
+                          </td>
+                        </tr>
+                      ) : (
+                        referrals.map(ref => (
+                          <tr key={ref.id} className="hover:bg-white/[0.03] transition-colors">
+                            <td className="px-6 py-4">
+                              <div className="flex flex-col">
+                                <span className="text-xs font-bold text-white">{ref.referrerName}</span>
+                                <span className="text-[9px] text-brand-silver/40">{ref.referrerEmail}</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex flex-col">
+                                <span className="text-xs font-bold text-white">{ref.referredName}</span>
+                                <span className="text-[9px] text-brand-silver/40">{ref.referredEmail}</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className="text-xs font-black text-white">₦{ref.bonusAmount.toLocaleString()}</span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`px-2.5 py-1 rounded-md text-[8px] font-black tracking-widest uppercase border ${
+                                ref.status === 'PAID' ? 'bg-brand-cyan/10 border-brand-cyan/30 text-brand-cyan' :
+                                ref.status === 'SUCCESS' ? 'bg-green-500/10 border-green-500/30 text-green-400' :
+                                'bg-yellow-500/10 border-yellow-500/30 text-yellow-400'
+                              }`}>
+                                {ref.status}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              {ref.status === 'SUCCESS' ? (
+                                <button 
+                                  onClick={() => handleRewardReferral(ref.id)}
+                                  className="px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-black uppercase tracking-widest hover:bg-green-500 hover:text-white transition-all animate-pulse"
+                                >
+                                  Reward Referrer 🎁
+                                </button>
+                              ) : ref.status === 'PAID' ? (
+                                <span className="text-[10px] font-black uppercase text-brand-silver/30">Credited 🎁</span>
+                              ) : (
+                                <span className="text-[10px] font-black uppercase text-brand-silver/30">Waiting for first Tx ⏳</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </Card>
               </>
             )}
 
