@@ -255,11 +255,12 @@ export function PurchaseModal({ isOpen, onClose, serviceType, refreshProfile }: 
                   </div>
                 )}
 
-                {purchaseState === 'SUCCESS' && (
+                 {purchaseState === 'SUCCESS' && (
                   <div className="text-center py-8 space-y-6">
                     <motion.div 
                       initial={{ scale: 0 }}
-                      animate={{ scale: 1, type: 'spring', stiffness: 200, damping: 15 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: 'spring', stiffness: 200, damping: 15 }}
                       className="w-20 h-20 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center mx-auto shadow-[0_0_30px_rgba(34,197,94,0.2)]"
                     >
                       <Check className="text-green-500" size={36} />
@@ -304,7 +305,8 @@ export function PurchaseModal({ isOpen, onClose, serviceType, refreshProfile }: 
                   <div className="text-center py-8 space-y-6">
                     <motion.div 
                       initial={{ scale: 0 }}
-                      animate={{ scale: 1, type: 'spring', stiffness: 200, damping: 15 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: 'spring', stiffness: 200, damping: 15 }}
                       className="w-20 h-20 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto shadow-[0_0_30px_rgba(239,68,68,0.2)]"
                     >
                       <X className="text-red-500" size={36} />
