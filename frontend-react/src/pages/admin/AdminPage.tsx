@@ -234,6 +234,34 @@ export function AdminPage() {
           </div>
         </div>
 
+        {/* Analytics Overview Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <StatCard 
+            title="Total Registered Agents" 
+            value={stats?.totalUsers} 
+            icon={Users} 
+            color="text-brand-cyan" 
+          />
+          <StatCard 
+            title="Total Wallet Liability" 
+            value={`₦${(stats?.totalUserBalance || 0).toLocaleString()}`} 
+            icon={Wallet} 
+            color="text-brand-royal" 
+          />
+          <StatCard 
+            title="Total Platform Profit" 
+            value={`₦${(stats?.totalSystemProfit || 0).toLocaleString()}`} 
+            icon={DollarSign} 
+            color="text-brand-gold" 
+          />
+          <StatCard 
+            title="Daily Sales Volume" 
+            value={`₦${(stats?.dailySales?.amount || 0).toLocaleString()} (${stats?.dailySales?.count || 0} sales)`} 
+            icon={Activity} 
+            color="text-green-400" 
+          />
+        </div>
+
         {/* Global Alert Management */}
         <div className="bg-[#111111] border border-red-500/20 rounded-2xl p-6 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/5 rounded-full blur-3xl pointer-events-none" />
