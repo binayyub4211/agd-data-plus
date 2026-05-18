@@ -4,9 +4,9 @@
   "description": "Backend for AGD Data Plus",
   "main": "src/server.ts",
   "scripts": {
-    "start": "node dist/server.js",
+    "start": "npx prisma db push --accept-data-loss && node dist/server.js",
     "dev": "nodemon src/server.ts",
-    "build": "npx prisma generate && npx prisma db push --accept-data-loss && tsc",
+    "build": "npx prisma generate && tsc",
     "lint": "eslint . --ext .ts"
   },
   "dependencies": {
