@@ -3,6 +3,7 @@ import { prisma } from '../utils/prisma';
 import { Provider } from '../types/prisma';
 import { PaymentPointService } from '../services/PaymentPointService';
 import { EmailService } from '../services/email.service';
+import { PaymentService } from '../services/payment.service';
 
 export const getAdminStats = async (req: Request, res: Response) => {
   try {
@@ -174,38 +175,90 @@ export const generateMissingAccounts = async (req: Request, res: Response) => {
 export const generateSingleAccount = async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
+    const { provider } = req.body;
+
     const user = await prisma.user.findUnique({ where: { id: userId } });
-    
     if (!user) return res.status(404).json({ error: 'User not found' });
-    if (user.ppAccountNumber) return res.status(400).json({ error: 'User already has a virtual account' });
 
-    try {
-      const virtualAccount = await PaymentPointService.createDedicatedAccount(
-        user.email,
-        user.name,
-        user.phone
-      );
-
-      if (virtualAccount) {
-        const accountNumber = virtualAccount.accountNumber || virtualAccount.account_number;
-        const bankName = virtualAccount.bankName || virtualAccount.bank_name;
-        const accountName = virtualAccount.accountName || virtualAccount.account_name;
-
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            ppAccountNumber: accountNumber,
-            ppBankName: bankName,
-            ppAccountName: accountName,
-          }
-        });
-        return res.json({ message: 'Account generated successfully', bank: bankName, account: accountNumber });
-      } else {
-        return res.status(400).json({ error: 'Provider returned empty account data' });
+    if (provider === 'PAYSTACK') {
+      if (user.psAccountNumber) {
+        return res.status(400).json({ error: 'User already has a Paystack virtual account' });
       }
-    } catch (apiError: any) {
-      // Return the exact provider error to the admin
-      return res.status(400).json({ error: apiError.message || 'Failed to generate account from provider' });
+
+      try {
+        let customerId = user.paystackCustomerId;
+        if (!customerId) {
+          const nameParts = user.name.split(' ');
+          const firstName = nameParts[0];
+          const lastName = nameParts.length > 1 ? nameParts[1] : 'User';
+          const customer = await PaymentService.createCustomer(
+            user.email,
+            firstName,
+            lastName,
+            user.phone
+          );
+          customerId = customer.customer_code;
+        }
+
+        if (!customerId) {
+          return res.status(400).json({ error: 'Failed to create or retrieve Paystack customer profile' });
+        }
+
+        const psAccount = await PaymentService.createVirtualAccount(customerId);
+        if (psAccount) {
+          const accountNumber = psAccount.account_number;
+          const bankName = psAccount.bank?.name || 'Wema Bank';
+          const accountName = psAccount.account_name;
+
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              paystackCustomerId: customerId,
+              psAccountNumber: accountNumber,
+              psBankName: bankName,
+              psAccountName: accountName,
+            }
+          });
+          return res.json({ message: 'Paystack Account generated successfully', bank: bankName, account: accountNumber });
+        } else {
+          return res.status(400).json({ error: 'Paystack returned empty dedicated account data. Make sure dedicated accounts are active on your dashboard.' });
+        }
+      } catch (apiError: any) {
+        return res.status(400).json({ error: apiError.message || 'Failed to generate Paystack account' });
+      }
+    } else {
+      // Default to PAYMENTPOINT
+      if (user.ppAccountNumber) {
+        return res.status(400).json({ error: 'User already has a PaymentPoint virtual account' });
+      }
+
+      try {
+        const virtualAccount = await PaymentPointService.createDedicatedAccount(
+          user.email,
+          user.name,
+          user.phone
+        );
+
+        if (virtualAccount) {
+          const accountNumber = virtualAccount.accountNumber || virtualAccount.account_number;
+          const bankName = virtualAccount.bankName || virtualAccount.bank_name;
+          const accountName = virtualAccount.accountName || virtualAccount.account_name;
+
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              ppAccountNumber: accountNumber,
+              ppBankName: bankName,
+              ppAccountName: accountName,
+            }
+          });
+          return res.json({ message: 'PaymentPoint Account generated successfully', bank: bankName, account: accountNumber });
+        } else {
+          return res.status(400).json({ error: 'PaymentPoint returned empty account data.' });
+        }
+      } catch (apiError: any) {
+        return res.status(400).json({ error: apiError.message || 'Failed to generate PaymentPoint account from provider' });
+      }
     }
   } catch (error: any) {
     res.status(500).json({ error: 'Internal server error' });
