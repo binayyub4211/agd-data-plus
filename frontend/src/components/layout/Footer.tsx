@@ -64,11 +64,11 @@ export function Footer() {
           <div className="space-y-4">
             <div className="flex items-center gap-3 text-brand-silver/60 text-sm">
               <Mail size={16} className="text-brand-cyan" />
-              <span>support@agddata.com</span>
+              <span>agdamgagennet@gmail.com</span>
             </div>
             <div className="flex items-center gap-3 text-brand-silver/60 text-sm">
               <Phone size={16} className="text-brand-cyan" />
-              <span>+234 800 000 0000</span>
+              <span>+234 7064889585</span>
             </div>
           </div>
           <div className="mt-8 p-4 rounded-2xl bg-brand-royal/10 border border-brand-royal/20">

@@ -71,11 +71,11 @@ export function Footer() {
             <ul className="space-y-4">
               <li className="flex items-center gap-3 text-brand-silver/50 text-sm">
                 <Mail size={14} className="text-brand-cyan shrink-0" />
-                support@agddataplus.com
+                agdamgagennet@gmail.com
               </li>
               <li className="flex items-center gap-3 text-brand-silver/50 text-sm">
                 <Phone size={14} className="text-brand-cyan shrink-0" />
-                +234 800 AGD PLUS
+                +234 7064889585
               </li>
             </ul>
             <div className="mt-8 p-4 rounded-2xl bg-brand-royal/10 border border-brand-royal/20">

@@ -144,7 +144,7 @@ export function BottomNav() {
               </div>
 
               <a 
-                href="https://wa.me/2348030000000"
+                href="https://wa.me/2347064889585"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-3.5 rounded-xl bg-[#25D366] hover:bg-[#20ba59] text-white font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-[0_4px_15px_rgba(37,211,102,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98]"
