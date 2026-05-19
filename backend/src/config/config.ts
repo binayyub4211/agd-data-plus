@@ -20,6 +20,7 @@ const envSchema = z.object({
   CHEAPDATAHUB_API_KEY: z.string().default('placeholder'),
   VTPASS_USERNAME: z.string().default('placeholder'),
   VTPASS_PASSWORD: z.string().default('placeholder'),
+  VTPASS_BASE_URL: z.string().default('https://sandbox.vtpass.com/api'),
   
   // Email (SMTP) Configuration
   SMTP_HOST: z.string().optional(),
