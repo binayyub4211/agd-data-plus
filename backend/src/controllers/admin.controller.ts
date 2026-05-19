@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../utils/prisma';
 import { Provider } from '../types/prisma';
+import { seedDefaultServicePrices } from '../utils/pricing';
 import { PaymentPointService } from '../services/PaymentPointService';
 import { EmailService } from '../services/email.service';
 import { PaymentService } from '../services/payment.service';
@@ -521,6 +522,7 @@ export const getMarketAnalysis = async (req: Request, res: Response) => {
     topReferrers.sort((a, b) => b.count - a.count);
 
     // 3. Pricing Plan Rules
+    await seedDefaultServicePrices();
     const planPrices = await prisma.servicePrice.findMany();
 
     res.json({

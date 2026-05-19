@@ -10,6 +10,7 @@ import { FundingModal } from '@/components/dashboard/FundingModal'
 import { ReceiptModal } from '@/components/dashboard/ReceiptModal'
 import { TransactionProcessing } from '@/components/dashboard/TransactionProcessing'
 import { NotificationBell } from '@/components/dashboard/NotificationBell'
+import { ThemeToggle } from '@/components/layout/ThemeToggle'
 import {
   Wallet, Copy, Banknote, ShieldCheck, Check, ShieldAlert, Mail,
   Wifi, Smartphone, Zap, Monitor, LogOut, User, Bell, Clock, ArrowDownLeft, Settings
@@ -231,13 +232,7 @@ export function DashboardPage() {
             >
               <User size={16} />
             </button>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all text-xs font-bold uppercase tracking-widest flex items-center gap-2"
-            >
-              <LogOut size={14} />
-              <span className="hidden sm:block">Logout</span>
-            </button>
+            <ThemeToggle />
           </div>
         </div>
       </header>

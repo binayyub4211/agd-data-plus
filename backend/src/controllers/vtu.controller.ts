@@ -7,6 +7,7 @@ import bcrypt from 'bcryptjs';
 // @ts-ignore
 import { v4 as uuidv4 } from 'uuid';
 import { EmailService } from '../services/email.service';
+import { seedDefaultServicePrices } from '../utils/pricing';
 
 const vtuEngine = new VtuEngine();
 
@@ -42,7 +43,50 @@ export const purchaseService = async (req: Request, res: Response) => {
         throw new Error('INCORRECT_PIN');
       }
 
-      if (user.wallet.balance < validated.amount) {
+      let finalAmountToDebit = validated.amount;
+      let costPrice: number | null = null;
+
+      if (validated.serviceType === ServiceType.DATA) {
+        const priceRule = await tx.servicePrice.findFirst({
+          where: { planCode: validated.planCode, serviceType: 'DATA' }
+        });
+        if (priceRule) {
+          finalAmountToDebit = user.role === 'RESELLER' || user.role === 'ADMIN' ? priceRule.resellerPrice : priceRule.sellingPrice;
+          costPrice = priceRule.providerPrice;
+        } else {
+          costPrice = validated.amount * 0.95;
+        }
+      } else if (validated.serviceType === ServiceType.AIRTIME) {
+        let networkKey = 'MTN_AIRTIME';
+        if (validated.planCode === '1') networkKey = 'MTN_AIRTIME';
+        else if (validated.planCode === '2') networkKey = 'GLO_AIRTIME';
+        else if (validated.planCode === '3') networkKey = 'AIRTEL_AIRTIME';
+        else if (validated.planCode === '4') networkKey = '9MOBILE_AIRTIME';
+
+        const priceRule = await tx.servicePrice.findFirst({
+          where: { planCode: networkKey, serviceType: 'AIRTIME' }
+        });
+        if (priceRule) {
+          const factor = user.role === 'RESELLER' || user.role === 'ADMIN' ? priceRule.resellerPrice : priceRule.sellingPrice;
+          finalAmountToDebit = validated.amount * factor;
+          costPrice = validated.amount * priceRule.providerPrice;
+        } else {
+          costPrice = validated.amount * 0.97;
+        }
+      } else if (validated.serviceType === ServiceType.ELECTRICITY || validated.serviceType === ServiceType.CABLE) {
+        const priceRule = await tx.servicePrice.findFirst({
+          where: { serviceType: validated.serviceType }
+        });
+        if (priceRule) {
+          const factor = user.role === 'RESELLER' || user.role === 'ADMIN' ? priceRule.resellerPrice : priceRule.sellingPrice;
+          finalAmountToDebit = validated.amount * factor;
+          costPrice = validated.amount * priceRule.providerPrice;
+        } else {
+          costPrice = validated.amount;
+        }
+      }
+
+      if (user.wallet.balance < finalAmountToDebit) {
         throw new Error('Insufficient wallet balance');
       }
 
@@ -52,7 +96,7 @@ export const purchaseService = async (req: Request, res: Response) => {
         data: {
           userId,
           walletId: user.wallet.id,
-          amount: validated.amount,
+          amount: finalAmountToDebit,
           serviceType: validated.serviceType,
           status: TransactionStatus.PENDING,
           provider: Provider.CHEAP_DATA_HUB, // Initial provider
@@ -64,7 +108,7 @@ export const purchaseService = async (req: Request, res: Response) => {
       // Debit Wallet
       const updatedWallet = await tx.wallet.update({
         where: { id: user.wallet.id },
-        data: { balance: { decrement: validated.amount } },
+        data: { balance: { decrement: finalAmountToDebit } },
       });
 
       // Log Audit
@@ -72,14 +116,14 @@ export const purchaseService = async (req: Request, res: Response) => {
         data: {
           userId,
           action: 'DEBIT',
-          amount: validated.amount,
+          amount: finalAmountToDebit,
           previousBalance: user.wallet.balance,
           newBalance: updatedWallet.balance,
           description: `Debit for ${validated.serviceType} purchase. Ref: ${reference}`,
         },
       });
 
-      return { transaction, user };
+      return { transaction, user, finalAmountToDebit, costPrice };
     });
 
     // Outside transaction, trigger the VTU Engine (external API calls)
@@ -90,8 +134,8 @@ export const purchaseService = async (req: Request, res: Response) => {
       });
 
       // Update transaction status to SUCCESS and log profits
-      const costPrice = (engineResponse as any).costPrice;
-      const profit = costPrice ? (validated.amount - costPrice) : null;
+      const costPrice = result.costPrice || (engineResponse as any).costPrice || (result.finalAmountToDebit * 0.95);
+      const profit = result.finalAmountToDebit - costPrice;
 
       await prisma.transaction.update({
         where: { id: result.transaction.id },
@@ -144,7 +188,7 @@ export const purchaseService = async (req: Request, res: Response) => {
         data: {
           userId,
           title: 'Transaction Successful',
-          message: `Your ${validated.serviceType} purchase for ${validated.phone} (₦${validated.amount}) was successful.`,
+          message: `Your ${validated.serviceType} purchase for ${validated.phone} (₦${result.finalAmountToDebit}) was successful.`,
           type: 'SUCCESS'
         }
       });
@@ -154,7 +198,7 @@ export const purchaseService = async (req: Request, res: Response) => {
         result.user.email,
         result.user.name,
         validated.serviceType,
-        validated.amount,
+        result.finalAmountToDebit,
         result.transaction.reference
       ).catch(e => console.error('Failed to send purchase receipt', e));
 
@@ -180,14 +224,14 @@ export const purchaseService = async (req: Request, res: Response) => {
 
         const refundedWallet = await tx.wallet.update({
           where: { id: currentWallet.id },
-          data: { balance: { increment: validated.amount } },
+          data: { balance: { increment: result.finalAmountToDebit } },
         });
 
         await tx.auditLog.create({
           data: {
             userId,
             action: 'CREDIT',
-            amount: validated.amount,
+            amount: result.finalAmountToDebit,
             previousBalance: currentWallet.balance,
             newBalance: refundedWallet.balance,
             description: `Refund for failed ${validated.serviceType} purchase. Ref: ${result.transaction.reference}`,
@@ -223,5 +267,15 @@ export const getUserTransactions = async (req: Request, res: Response) => {
     res.json(transactions);
   } catch (error: any) {
     res.status(500).json({ error: 'Failed to fetch transactions' });
+  }
+};
+
+export const getPlans = async (req: Request, res: Response) => {
+  try {
+    await seedDefaultServicePrices();
+    const plans = await prisma.servicePrice.findMany();
+    res.json(plans);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
   }
 };

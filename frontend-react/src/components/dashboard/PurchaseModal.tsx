@@ -88,6 +88,44 @@ export function PurchaseModal({ isOpen, onClose, serviceType, refreshProfile }: 
   const meta = SERVICE_META[serviceType] ?? SERVICE_META['DATA']
   const Icon = meta.icon
 
+  const MTN_PLAN_CODES = ['43', '74', '76', '78', '44', '77', '45', '46', '48', '49', '50']
+  const GLO_PLAN_CODES = ['42', '35', '68', '36', '40', '37', '38']
+  const AIRTEL_PLAN_CODES = ['70', '13', '15', '17', '18', '20']
+
+  const PLAN_NAMES: Record<string, string> = {
+    '43': '110MB (1 Day)',
+    '74': '230MB (1 Day)',
+    '76': '500MB (2 Days)',
+    '78': '1GB (1 Day)',
+    '44': '500MB (30 Days)',
+    '77': '1GB (2 Days)',
+    '45': '1GB (7 Days)',
+    '46': '1GB (30 Days)',
+    '48': '2GB (30 Days)',
+    '49': '3GB (30 Days)',
+    '50': '5GB (30 Days)',
+
+    '42': '200MB (1 Day)',
+    '35': '500MB (30 Days)',
+    '68': '1GB (3 Days)',
+    '36': '1GB (30 Days)',
+    '40': '2GB (30 Days)',
+    '37': '3GB (30 Days)',
+    '38': '5GB (30 Days)',
+
+    '70': '1GB Social (3 Days)',
+    '13': '500MB (7 Days)',
+    '15': '1GB (7 Days)',
+    '17': '2GB (30 Days)',
+    '18': '3GB (30 Days)',
+    '20': '8GB (30 Days)',
+  }
+
+  const userStr = localStorage.getItem('user')
+  const user = userStr ? JSON.parse(userStr) : null
+
+  const [plans, setPlans] = useState<any[]>([])
+
   useEffect(() => {
     if (isOpen) {
       // Check if user has a PIN configured
@@ -96,8 +134,51 @@ export function PurchaseModal({ isOpen, onClose, serviceType, refreshProfile }: 
           setHasPin(res.data.configured)
         })
         .catch(err => console.error('Failed checking PIN status', err))
+
+      // Fetch dynamic plans
+      api.get('/vtu/plans')
+        .then(res => {
+          setPlans(res.data)
+        })
+        .catch(err => console.error('Failed fetching dynamic plans', err))
     }
   }, [isOpen])
+
+  // Construct dynamic data plans based on user tier
+  const dynamicDataPlans: Record<string, { id: string; name: string; price: number }[]> = {
+    '1': [], // MTN
+    '2': [], // Glo
+    '3': [], // Airtel
+    '4': [{ id: 'default', name: 'Contact Admin for 9mobile', price: 0 }] // 9mobile
+  }
+
+  const dataPlansFromDB = plans.filter(p => p.serviceType === 'DATA')
+
+  if (dataPlansFromDB.length > 0) {
+    dataPlansFromDB.forEach(p => {
+      const isReseller = user?.role === 'RESELLER' || user?.role === 'ADMIN'
+      const finalPrice = isReseller ? p.resellerPrice : p.sellingPrice
+      const planName = PLAN_NAMES[p.planCode] || `Data Plan ${p.planCode}`
+      
+      if (MTN_PLAN_CODES.includes(p.planCode)) {
+        dynamicDataPlans['1'].push({ id: p.planCode, name: planName, price: finalPrice })
+      } else if (GLO_PLAN_CODES.includes(p.planCode)) {
+        dynamicDataPlans['2'].push({ id: p.planCode, name: planName, price: finalPrice })
+      } else if (AIRTEL_PLAN_CODES.includes(p.planCode)) {
+        dynamicDataPlans['3'].push({ id: p.planCode, name: planName, price: finalPrice })
+      }
+    })
+
+    // Sort them by price ascending
+    dynamicDataPlans['1'].sort((a, b) => a.price - b.price)
+    dynamicDataPlans['2'].sort((a, b) => a.price - b.price)
+    dynamicDataPlans['3'].sort((a, b) => a.price - b.price)
+  } else {
+    // Fallback to static DATA_PLANS
+    Object.keys(DATA_PLANS).forEach(key => {
+      dynamicDataPlans[key] = DATA_PLANS[key]
+    })
+  }
 
   const update = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((prev) => ({ ...prev, [field]: e.target.value }))
@@ -396,7 +477,7 @@ export function PurchaseModal({ isOpen, onClose, serviceType, refreshProfile }: 
                           disabled={!selectedNetwork}
                           value={form.planCode}
                           onChange={(e) => {
-                            const plan = DATA_PLANS[selectedNetwork!]?.find(p => p.id === e.target.value);
+                            const plan = dynamicDataPlans[selectedNetwork!]?.find(p => p.id === e.target.value);
                             setForm(prev => ({ 
                               ...prev, 
                               planCode: e.target.value,
@@ -406,7 +487,7 @@ export function PurchaseModal({ isOpen, onClose, serviceType, refreshProfile }: 
                           className="w-full bg-white/5 border border-brand-royal/10 rounded-xl py-4 px-4 text-sm text-white focus:outline-none focus:border-brand-cyan transition-all appearance-none cursor-pointer"
                         >
                           <option value="" className="bg-brand-midnight">Choose a plan...</option>
-                          {selectedNetwork && DATA_PLANS[selectedNetwork]?.map(plan => (
+                          {selectedNetwork && dynamicDataPlans[selectedNetwork]?.map(plan => (
                             <option key={plan.id} value={plan.id} className="bg-brand-midnight">
                               {plan.name} - ₦{plan.price}
                             </option>

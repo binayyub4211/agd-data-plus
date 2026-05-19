@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Menu, X, Shield } from 'lucide-react'
+import { ThemeToggle } from './ThemeToggle'
 
 const navLinks = [
   { name: 'Home', href: '/' },
@@ -75,6 +76,7 @@ export function Header() {
 
           {/* Desktop CTAs */}
           <div className="hidden md:flex items-center gap-4">
+            <ThemeToggle />
             <Link
               to="/auth/login"
               className="text-brand-silver hover:text-white transition-colors font-semibold text-sm"
@@ -90,13 +92,16 @@ export function Header() {
           </div>
 
           {/* Mobile toggle */}
-          <button
-            className="md:hidden text-white z-[70] p-1"
-            onClick={() => setMobileOpen(!mobileOpen)}
-            aria-label="Toggle menu"
-          >
-            {mobileOpen ? <X size={26} /> : <Menu size={26} />}
-          </button>
+          <div className="flex items-center gap-2 md:hidden">
+            <ThemeToggle />
+            <button
+              className="text-white z-[70] p-1"
+              onClick={() => setMobileOpen(!mobileOpen)}
+              aria-label="Toggle menu"
+            >
+              {mobileOpen ? <X size={26} /> : <Menu size={26} />}
+            </button>
+          </div>
         </div>
       </header>
 

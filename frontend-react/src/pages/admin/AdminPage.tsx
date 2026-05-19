@@ -47,6 +47,7 @@ export function AdminPage() {
   const [isRegenerating, setIsRegenerating] = useState(false)
   const [broadcastState, setBroadcastState] = useState<{ isOpen: boolean, targetUserId?: string, targetUserName?: string }>({ isOpen: false })
   const [activeAlert, setActiveAlert] = useState<string>('')
+  const [newAlertMessage, setNewAlertMessage] = useState<string>('')
 
   const fetchData = async () => {
     try {
@@ -191,7 +192,8 @@ export function AdminPage() {
         planCode: rule.planCode,
         providerPrice: Number(priceForm.providerPrice),
         sellingPrice: Number(priceForm.sellingPrice),
-        resellerPrice: Number(priceForm.resellerPrice)
+        resellerPrice: Number(priceForm.resellerPrice),
+        serviceType: rule.serviceType
       })
       toast.success('Pricing margin updated successfully!')
       setEditingPlanCode(null)
@@ -303,18 +305,19 @@ export function AdminPage() {
               <Input 
                 placeholder="Enter critical message for all users..." 
                 id="alertMessage"
+                value={newAlertMessage}
+                onChange={(e) => setNewAlertMessage(e.target.value)}
                 className="flex-1 bg-white/5 border-white/10 text-white"
               />
               <div className="flex gap-2">
                 <Button 
                   onClick={async () => {
-                    const el = document.getElementById('alertMessage') as HTMLInputElement;
-                    if (!el.value) return toast.error('Message is empty');
+                    if (!newAlertMessage) return toast.error('Message is empty');
                     try {
-                      await api.post('/admin/alert', { message: el.value });
+                      await api.post('/admin/alert', { message: newAlertMessage });
                       toast.success('Global alert broadcasted to all users!');
-                      setActiveAlert(el.value);
-                      el.value = '';
+                      setActiveAlert(newAlertMessage);
+                      setNewAlertMessage('');
                     } catch (e: any) {
                       toast.error(e.response?.data?.error || 'Failed to set alert');
                     }

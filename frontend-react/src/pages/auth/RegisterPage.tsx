@@ -80,6 +80,7 @@ export function RegisterPage() {
       localStorage.setItem('token', res.data.token)
       localStorage.setItem('refreshToken', res.data.refreshToken)
       localStorage.setItem('user', JSON.stringify(res.data.user))
+      sessionStorage.removeItem('dismissedAlertId')
       setRegisteredName(formData.name)
       setShowWelcome(true)
     } catch (err: any) {

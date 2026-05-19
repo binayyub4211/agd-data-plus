@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { HashRouter, Routes, Route } from 'react-router-dom'
 import { ClientLayout } from '@/components/layout/ClientLayout'
 import { HomePage } from '@/pages/HomePage'
@@ -17,6 +18,18 @@ import { GlobalAlertModal } from '@/components/layout/GlobalAlertModal'
 import { UpdateModal } from '@/components/layout/UpdateModal'
 
 export default function App() {
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme')
+    const userStr = localStorage.getItem('user')
+    const user = userStr ? JSON.parse(userStr) : null
+    const theme = savedTheme || user?.theme || 'DARK'
+    if (theme === 'LIGHT') {
+      document.documentElement.classList.add('light')
+    } else {
+      document.documentElement.classList.remove('light')
+    }
+  }, [])
+
   return (
     <HashRouter>
       <ClientLayout>
