@@ -267,18 +267,29 @@ export class WhatsAppController {
       }
 
       if (lowerInput === '4' || lowerInput.includes('electricity') || lowerInput.includes('power')) {
-        // Electricity bills
+        // Electricity bills — numbered provider selection
         await prisma.whatsAppSession.update({
           where: { id: session.id },
           data: {
-            state: 'ENTER_BENEFICIARY',
+            state: 'SELECT_NETWORK',
             stepData: JSON.stringify({ type: 'ELECTRICITY' })
           }
         });
         await WhatsAppService.sendText(
           phone,
           `💡 **Pay Electricity Bill**\n\n` +
-          `Please reply with the electricity provider name and meter type (e.g. 'Ikeja prepaid', 'Eko postpaid', 'AEDC prepaid'):`
+          `Please select your electricity provider:\n` +
+          `1. Ikeja Electric (IKEDC)\n` +
+          `2. Eko Electric (EKEDC)\n` +
+          `3. Abuja Electric (AEDC)\n` +
+          `4. Kano Electric (KEDCO)\n` +
+          `5. Port Harcourt (PHED)\n` +
+          `6. Jos Electric (JED)\n` +
+          `7. Ibadan Electric (IBEDC)\n` +
+          `8. Kaduna Electric (KAEDCO)\n` +
+          `9. Enugu Electric (EEDC)\n` +
+          `10. Benin Electric (BEDC)\n\n` +
+          `Reply with **1-10** (or **cancel**):`
         );
         return;
       }
@@ -314,6 +325,48 @@ export class WhatsAppController {
     // ----------------------------------------------------
     if (session.state === 'SELECT_NETWORK') {
       const choice = input.trim();
+
+      // --- ELECTRICITY PROVIDER SELECTION ---
+      if (stepData.type === 'ELECTRICITY') {
+        const electricityProviders: Record<string, { serviceID: string; name: string }> = {
+          '1':  { serviceID: 'ikeja-electric',        name: 'Ikeja Electric (IKEDC)' },
+          '2':  { serviceID: 'eko-electric',           name: 'Eko Electric (EKEDC)' },
+          '3':  { serviceID: 'abuja-electric',         name: 'Abuja Electric (AEDC)' },
+          '4':  { serviceID: 'kano-electric',          name: 'Kano Electric (KEDCO)' },
+          '5':  { serviceID: 'portharcourt-electric',  name: 'Port Harcourt (PHED)' },
+          '6':  { serviceID: 'jos-electric',           name: 'Jos Electric (JED)' },
+          '7':  { serviceID: 'ibadan-electric',        name: 'Ibadan Electric (IBEDC)' },
+          '8':  { serviceID: 'kaduna-electric',        name: 'Kaduna Electric (KAEDCO)' },
+          '9':  { serviceID: 'enugu-electric',         name: 'Enugu Electric (EEDC)' },
+          '10': { serviceID: 'benin-electric',         name: 'Benin Electric (BEDC)' },
+        };
+
+        const selected = electricityProviders[choice];
+        if (!selected) {
+          await WhatsAppService.sendText(phone, "❌ **Invalid Selection**\n\nPlease select a valid electricity provider (1-10) or reply **cancel**:");
+          return;
+        }
+
+        await prisma.whatsAppSession.update({
+          where: { id: session.id },
+          data: {
+            state: 'ENTER_BENEFICIARY',
+            stepData: JSON.stringify({ ...stepData, serviceID: selected.serviceID, providerName: selected.name })
+          }
+        });
+
+        await WhatsAppService.sendText(
+          phone,
+          `⚡ Selected **${selected.name}**.\n\n` +
+          `Please select your meter type:\n` +
+          `1. Prepaid\n` +
+          `2. Postpaid\n\n` +
+          `Reply with **1** or **2** (or **cancel**):`
+        );
+        return;
+      }
+
+      // --- AIRTIME / DATA NETWORK SELECTION ---
       let network = '';
 
       if (choice === '1') network = 'MTN';
@@ -350,24 +403,60 @@ export class WhatsAppController {
           await WhatsAppService.sendText(phone, "❌ **Invalid Phone Number**\n\nPlease enter a correct 11-digit mobile number (or **cancel**):");
           return;
         }
-      } else {
-        // Utility validator: generic check for meter / smartcard ID length (e.g., minimum 8 digits)
-        if (!/^\d{8,}$/.test(beneficiary) && stepData.type !== 'CABLE') {
-          // If CABLE choice was sent as digit selection (1, 2, 3), handle it
-          if (stepData.type === 'CABLE' && (beneficiary === '1' || beneficiary === '2' || beneficiary === '3')) {
-            let provider = 'dstv';
-            if (beneficiary === '2') provider = 'gotv';
-            if (beneficiary === '3') provider = 'startimes';
+      } else if (stepData.type === 'CABLE') {
+        // Handle Cable provider selection first if not set
+        if (!stepData.network) {
+          let provider = '';
+          if (beneficiary === '1') provider = 'DSTV';
+          else if (beneficiary === '2') provider = 'GOTV';
+          else if (beneficiary === '3') provider = 'STARTIMES';
 
-            await prisma.whatsAppSession.update({
-              where: { id: session.id },
-              data: {
-                stepData: JSON.stringify({ ...stepData, network: provider.toUpperCase() })
-              }
-            });
-            await WhatsAppService.sendText(phone, `📺 Selected **${provider.toUpperCase()}**.\n\nPlease enter the **Smartcard Number / UID** (e.g., \`1023948576\`):`);
+          if (!provider) {
+            await WhatsAppService.sendText(phone, "❌ **Invalid Selection**\n\nPlease select your Cable TV provider:\n1. DSTV\n2. GOTV\n3. StarTimes\n\nReply with **1**, **2**, or **3** (or **cancel**):");
             return;
           }
+
+          await prisma.whatsAppSession.update({
+            where: { id: session.id },
+            data: {
+              stepData: JSON.stringify({ ...stepData, network: provider })
+            }
+          });
+          await WhatsAppService.sendText(phone, `📺 Selected **${provider}**.\n\nPlease enter the **Smartcard Number / UID** (e.g., \`1023948576\`):`);
+          return;
+        }
+
+        // Validate smartcard number
+        if (!/^\d{8,}$/.test(beneficiary)) {
+          await WhatsAppService.sendText(phone, `❌ **Invalid Smartcard Number**\n\nPlease enter your correct **${stepData.network}** Smartcard Number / UID (at least 8 digits):`);
+          return;
+        }
+      } else if (stepData.type === 'ELECTRICITY') {
+        // Sub-step 1: Select meter type (prepaid / postpaid)
+        if (!stepData.meterType) {
+          let meterType = '';
+          if (beneficiary === '1') meterType = 'prepaid';
+          else if (beneficiary === '2') meterType = 'postpaid';
+
+          if (!meterType) {
+            await WhatsAppService.sendText(phone, "❌ **Invalid Selection**\n\nPlease select your meter type:\n1. Prepaid\n2. Postpaid\n\nReply with **1** or **2** (or **cancel**):");
+            return;
+          }
+
+          await prisma.whatsAppSession.update({
+            where: { id: session.id },
+            data: {
+              stepData: JSON.stringify({ ...stepData, meterType })
+            }
+          });
+          await WhatsAppService.sendText(phone, `⚡ Selected **${meterType.toUpperCase()}** meter.\n\nPlease enter your **Meter Number** (at least 8 digits):`);
+          return;
+        }
+
+        // Sub-step 2: Validate meter number
+        if (!/^\d{8,}$/.test(beneficiary)) {
+          await WhatsAppService.sendText(phone, "❌ **Invalid Meter Number**\n\nPlease enter your correct Meter Number (at least 8 digits):");
+          return;
         }
       }
 
@@ -388,8 +477,8 @@ export class WhatsAppController {
         await prisma.whatsAppSession.update({
           where: { id: session.id },
           data: {
-            state: 'SELECT_PLAN', // Electricity amount
-            stepData: JSON.stringify({ ...stepData, beneficiary, provider: input })
+            state: 'SELECT_PLAN',
+            stepData: JSON.stringify({ ...stepData, beneficiary })
           }
         });
         await WhatsAppService.sendText(phone, `💵 Enter the **Electricity Amount** you want to purchase (minimum ₦1,000):`);
@@ -440,14 +529,41 @@ export class WhatsAppController {
       }
 
       if (stepData.type === 'CABLE') {
+        // Fetch dynamic Cable TV plans from VTpass
+        const vtpassServiceID = stepData.network.toLowerCase() === 'startimes' ? 'startimes' : stepData.network.toLowerCase();
+        let variations: any[] = [];
+        try {
+          variations = await vtuEngine.getServiceVariations(vtpassServiceID);
+        } catch (err: any) {
+          console.error(`[WhatsApp] Failed to fetch ${vtpassServiceID} variations:`, err.message);
+        }
+
+        let planListText = `📺 **Select a ${stepData.network} Package**:\n\n`;
+        const planList: any[] = [];
+
+        if (variations.length > 0) {
+          variations.forEach((v: any, index: number) => {
+            const num = index + 1;
+            const name = v.name || v.variation_code;
+            const price = v.variation_amount || v.fixedPrice || '—';
+            planListText += `*${num}*. ${name} — **₦${price}**\n`;
+            planList.push({ id: num.toString(), code: v.variation_code, price: parseFloat(v.variation_amount || v.fixedPrice || '0') });
+          });
+          planListText += `\nReply with the **number (1-${variations.length})** to select:`;
+        } else {
+          const exampleCode = vtpassServiceID === 'dstv' ? 'dstv-padi' : vtpassServiceID === 'gotv' ? 'gotv-jolli' : 'nova';
+          planListText = `📺 Selected **${stepData.network}** smartcard **${beneficiary}**.\n\nPlease enter the package code (e.g. \`${exampleCode}\`):`;  
+        }
+
         await prisma.whatsAppSession.update({
           where: { id: session.id },
           data: {
             state: 'SELECT_PLAN',
-            stepData: JSON.stringify({ ...stepData, beneficiary })
+            stepData: JSON.stringify({ ...stepData, beneficiary, planList })
           }
         });
-        await WhatsAppService.sendText(phone, `📺 Please enter the package name / plan code (e.g. \`dstv-padi\`, \`gotv-jolli\`):`);
+
+        await WhatsAppService.sendText(phone, planListText);
         return;
       }
     }
@@ -477,7 +593,7 @@ export class WhatsAppController {
 
         const label = stepData.type === 'AIRTIME' 
           ? `Airtime Top-up (${stepData.network})`
-          : `Electricity Payment (${stepData.provider})`;
+          : `Electricity (${stepData.providerName || stepData.serviceID}) — ${(stepData.meterType || 'prepaid').toUpperCase()}`;
 
         await WhatsAppService.sendText(
           phone,
@@ -584,7 +700,7 @@ export class WhatsAppController {
         else if (stepData.network === 'AIRTEL') planCode = '3';
         else if (stepData.network === '9MOBILE') planCode = '4';
       } else if (serviceType === ServiceType.ELECTRICITY) {
-        planCode = stepData.provider;
+        planCode = `${stepData.serviceID} ${stepData.meterType || 'prepaid'}`;
       }
 
       // EXECUTE ATOMIC TRANSACTION

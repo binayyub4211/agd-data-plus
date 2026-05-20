@@ -131,7 +131,7 @@ export class VTpassProvider extends ProviderService {
   /**
    * Fetches service variations dynamically with cache
    */
-  private async getVariations(serviceID: string): Promise<any[]> {
+  public async getVariations(serviceID: string): Promise<any[]> {
     if (this.variationsCache.has(serviceID)) {
       return this.variationsCache.get(serviceID)!;
     }
@@ -370,7 +370,7 @@ export class VTpassProvider extends ProviderService {
 
       if (request.serviceType === 'CABLE') {
         serviceID = 'dstv';
-        variation_code = 'dstv-padi';
+        variation_code = request.planCode.trim().toLowerCase();
       }
 
       const parts = request.planCode.split(/[:\s,/]+/);

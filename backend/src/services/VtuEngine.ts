@@ -21,11 +21,23 @@ export class VtuEngine {
       return this.handleAirtimePurchase(request);
     }
     
-    if (request.serviceType === ServiceType.ELECTRICITY || request.serviceType === ServiceType.CABLE) {
+    if (request.serviceType === ServiceType.ELECTRICITY) {
       return this.handleUtilityPurchase(request);
     }
 
+    if (request.serviceType === ServiceType.CABLE) {
+      return this.handleTvPurchase(request);
+    }
+
     throw new Error(`[VtuEngine] Unsupported ServiceType: ${request.serviceType}`);
+  }
+
+  /**
+   * Exposes VTpass service variations for dynamic plan menus (used by WhatsApp chatbot).
+   * @param serviceID - VTpass serviceID e.g. 'dstv', 'gotv', 'startimes'
+   */
+  public async getServiceVariations(serviceID: string): Promise<any[]> {
+    return this.vtpass.getVariations(serviceID);
   }
 
   private async handleAirtimePurchase(request: BuyRequest) {
@@ -78,12 +90,24 @@ export class VtuEngine {
 
   private async handleUtilityPurchase(request: BuyRequest) {
     try {
-      // 1. Primary: VTpass
+      // 1. Primary: VTpass (only provider for Electricity)
       const response = await this.vtpass.buyUtility(request);
       return { success: true, providerUsed: this.vtpass.name, response };
     } catch (error: any) {
-      console.error(`[VtuEngine] Primary Provider (VTpass) failed for UTILITY. No failover available.`);
-      throw new Error(`Utility transaction failed: ${error.message}`);
+      console.error(`[VtuEngine] Primary Provider (VTpass) failed for ELECTRICITY. No failover available.`);
+      throw new Error(`Electricity payment failed: ${error.message}`);
+    }
+  }
+
+  private async handleTvPurchase(request: BuyRequest) {
+    try {
+      // 1. Primary: VTpass (dedicated Cable TV endpoint)
+      const response = await this.vtpass.buyTv(request);
+      return { success: true, providerUsed: this.vtpass.name, response };
+    } catch (error: any) {
+      console.error(`[VtuEngine] VTpass failed for CABLE TV. No failover available.`);
+      throw new Error(`Cable TV subscription failed: ${error.message}`);
     }
   }
 }
+
