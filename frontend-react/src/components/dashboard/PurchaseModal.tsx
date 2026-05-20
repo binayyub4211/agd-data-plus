@@ -25,6 +25,7 @@ const SERVICE_META: Record<string, { icon: React.ElementType; label: string; col
   AIRTIME:     { icon: Smartphone, label: 'Airtime',     color: 'text-green-400',   placeholder: 'Select Network'  },
   ELECTRICITY: { icon: Zap,        label: 'Electricity', color: 'text-brand-gold',  placeholder: 'e.g. PREPAID-5000' },
   CABLE:       { icon: Monitor,    label: 'Cable TV',    color: 'text-purple-400',  placeholder: 'e.g. DSTV-COMPACT' },
+  EXAM:        { icon: ShieldCheck,label: 'Exam PINs',   color: 'text-red-400',     placeholder: 'Select Exam Board' },
 }
 
 const ELECTRICITY_PROVIDERS = [
@@ -49,6 +50,12 @@ const CABLE_PROVIDERS = [
   { id: 'dstv', name: 'DStv' },
   { id: 'gotv', name: 'GOtv' },
   { id: 'startimes', name: 'StarTimes' },
+]
+
+const EXAM_PROVIDERS = [
+  { id: 'waec', name: 'WAEC' },
+  { id: 'neco', name: 'NECO' },
+  { id: 'jamb', name: 'JAMB' },
 ]
 
 
@@ -181,9 +188,9 @@ export function PurchaseModal({ isOpen, onClose, serviceType, refreshProfile }: 
     }
   }, [isOpen])
 
-  // Fetch Cable TV variations dynamically when service type is CABLE and selectedNetwork provider changes
+  // Fetch Cable TV or Exam variations dynamically when service type is CABLE or EXAM and selectedNetwork provider changes
   useEffect(() => {
-    if (isOpen && serviceType === 'CABLE' && selectedNetwork) {
+    if (isOpen && (serviceType === 'CABLE' || serviceType === 'EXAM') && selectedNetwork) {
       setLoadingVariations(true)
       setVariations([])
       api.get(`/vtu/variations/${selectedNetwork}`)
@@ -250,7 +257,7 @@ export function PurchaseModal({ isOpen, onClose, serviceType, refreshProfile }: 
 
   const handleFirstStepSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedNetwork && (serviceType === 'DATA' || serviceType === 'AIRTIME' || serviceType === 'CABLE' || serviceType === 'ELECTRICITY')) {
+    if (!selectedNetwork && (serviceType === 'DATA' || serviceType === 'AIRTIME' || serviceType === 'CABLE' || serviceType === 'ELECTRICITY' || serviceType === 'EXAM')) {
       return toast.error('Please select a service provider')
     }
 
@@ -540,6 +547,31 @@ export function PurchaseModal({ isOpen, onClose, serviceType, refreshProfile }: 
                       </div>
                     )}
 
+                    {/* Exam Provider Selector */}
+                    {serviceType === 'EXAM' && (
+                      <div className="space-y-3">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-brand-silver/40 px-1">
+                          Select Exam Board
+                        </label>
+                        <select 
+                          required
+                          value={selectedNetwork || ''}
+                          onChange={(e) => {
+                            setSelectedNetwork(e.target.value)
+                            setForm(prev => ({ ...prev, planCode: '', amount: '' }))
+                          }}
+                          className="w-full bg-white/5 border border-brand-royal/10 rounded-xl py-4 px-4 text-sm text-white focus:outline-none focus:border-brand-cyan transition-all appearance-none cursor-pointer"
+                        >
+                          <option value="" className="bg-brand-midnight">Choose board...</option>
+                          {EXAM_PROVIDERS.map(prov => (
+                            <option key={prov.id} value={prov.id} className="bg-brand-midnight">
+                              {prov.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
                     {/* Electricity Provider Selector */}
                     {serviceType === 'ELECTRICITY' && (
                       <div className="space-y-3">
@@ -601,7 +633,9 @@ export function PurchaseModal({ isOpen, onClose, serviceType, refreshProfile }: 
                           ? 'Meter Number' 
                           : serviceType === 'CABLE' 
                             ? 'Smartcard Number' 
-                            : 'Recipient Phone Number'}
+                            : serviceType === 'EXAM' && selectedNetwork === 'jamb'
+                              ? 'JAMB Profile Code'
+                              : 'Recipient Phone Number'}
                       </label>
                       <input
                         type="tel"
@@ -610,7 +644,9 @@ export function PurchaseModal({ isOpen, onClose, serviceType, refreshProfile }: 
                             ? 'Enter meter number' 
                             : serviceType === 'CABLE' 
                               ? 'Enter smartcard number' 
-                              : '08012345678'
+                              : serviceType === 'EXAM' && selectedNetwork === 'jamb'
+                                ? 'Enter Profile Code'
+                                : '08012345678'
                         }
                         required
                         value={form.phone}
@@ -653,11 +689,11 @@ export function PurchaseModal({ isOpen, onClose, serviceType, refreshProfile }: 
                       </div>
                     )}
 
-                    {/* Cable TV package selection dropdown list */}
-                    {serviceType === 'CABLE' && (
+                    {/* Cable TV or Exam package selection dropdown list */}
+                    {(serviceType === 'CABLE' || serviceType === 'EXAM') && (
                       <div className="space-y-3">
                         <label className="text-[10px] font-black uppercase tracking-widest text-brand-silver/40 px-1 flex justify-between items-center">
-                          <span>Select Cable Package</span>
+                          <span>{serviceType === 'CABLE' ? 'Select Cable Package' : 'Select PIN Package'}</span>
                           {loadingVariations && <span className="text-[9px] animate-pulse text-brand-cyan">Loading packages...</span>}
                         </label>
                         <select 
@@ -698,7 +734,7 @@ export function PurchaseModal({ isOpen, onClose, serviceType, refreshProfile }: 
                           type="number"
                           placeholder="0.00"
                           required
-                          disabled={serviceType === 'DATA' || (serviceType === 'CABLE' && !!form.planCode)}
+                          disabled={serviceType === 'DATA' || ((serviceType === 'CABLE' || serviceType === 'EXAM') && !!form.planCode)}
                           min={serviceType === 'AIRTIME' ? 50 : 100}
                           value={form.amount}
                           onChange={(e) => setForm(prev => ({ ...prev, amount: e.target.value }))}
