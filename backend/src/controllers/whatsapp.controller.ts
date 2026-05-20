@@ -288,8 +288,9 @@ export class WhatsAppController {
           `7. Ibadan Electric (IBEDC)\n` +
           `8. Kaduna Electric (KAEDCO)\n` +
           `9. Enugu Electric (EEDC)\n` +
-          `10. Benin Electric (BEDC)\n\n` +
-          `Reply with **1-10** (or **cancel**):`
+          `10. Benin Electric (BEDC)\n` +
+          `11. Yola Electric (YEDC)\n\n` +
+          `Reply with **1-11** (or **cancel**):`
         );
         return;
       }
@@ -339,11 +340,12 @@ export class WhatsAppController {
           '8':  { serviceID: 'kaduna-electric',        name: 'Kaduna Electric (KAEDCO)' },
           '9':  { serviceID: 'enugu-electric',         name: 'Enugu Electric (EEDC)' },
           '10': { serviceID: 'benin-electric',         name: 'Benin Electric (BEDC)' },
+          '11': { serviceID: 'yola-electric',          name: 'Yola Electric (YEDC)' },
         };
 
         const selected = electricityProviders[choice];
         if (!selected) {
-          await WhatsAppService.sendText(phone, "❌ **Invalid Selection**\n\nPlease select a valid electricity provider (1-10) or reply **cancel**:");
+          await WhatsAppService.sendText(phone, "❌ **Invalid Selection**\n\nPlease select a valid electricity provider (1-11) or reply **cancel**:");
           return;
         }
 
