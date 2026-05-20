@@ -3,36 +3,37 @@ import { Provider } from '../../types/prisma';
 import { ProviderService, BuyRequest } from './ProviderService';
 
 // Predefined static fallback map of CheapDataHub planCode to VTpass variationCode
+// IMPORTANT: These codes are sourced from the actual VTpass API (service-variations endpoint)
 const STATIC_VTPASS_DATA_CODES: Record<string, { serviceID: string; variationCode: string }> = {
-  // MTN
-  '43': { serviceID: 'mtn-data', variationCode: 'mtn-100mb-100' },
-  '74': { serviceID: 'mtn-data', variationCode: 'mtn-200mb' },
-  '76': { serviceID: 'mtn-data', variationCode: 'mtn-500mb-2days' },
-  '78': { serviceID: 'mtn-data', variationCode: 'mtn-1gb-350' },
-  '44': { serviceID: 'mtn-data', variationCode: 'mtn-500mb-30days' },
-  '77': { serviceID: 'mtn-data', variationCode: 'mtn-1gb-2days' },
-  '45': { serviceID: 'mtn-data', variationCode: 'mtn-1gb-7days' },
-  '46': { serviceID: 'mtn-data', variationCode: 'mtn-30days-1gb' },
-  '48': { serviceID: 'mtn-data', variationCode: 'mtn-30days-2gb' },
-  '49': { serviceID: 'mtn-data', variationCode: 'mtn-30days-3gb' },
-  '50': { serviceID: 'mtn-data', variationCode: 'mtn-30days-5gb' },
+  // MTN (actual VTpass variation codes)
+  '43': { serviceID: 'mtn-data', variationCode: 'mtn-10mb-100' },      // ~100MB 24hrs
+  '74': { serviceID: 'mtn-data', variationCode: 'mtn-50mb-200' },      // 200MB 2days
+  '76': { serviceID: 'mtn-data', variationCode: 'mtn-2-5gb-600' },     // 2.5GB 2days (closest to 500MB short-term)
+  '78': { serviceID: 'mtn-data', variationCode: 'mtn-100mb-1000' },    // 1.5GB 30days
+  '44': { serviceID: 'mtn-data', variationCode: 'mtn-100mb-1000' },    // 1.5GB 30days
+  '77': { serviceID: 'mtn-data', variationCode: 'mtn-2-5gb-600' },     // 2.5GB 2days
+  '45': { serviceID: 'mtn-data', variationCode: 'mtn-20hrs-1500' },    // 6GB 7days
+  '46': { serviceID: 'mtn-data', variationCode: 'mtn-100mb-1000' },    // 1.5GB 30days
+  '48': { serviceID: 'mtn-data', variationCode: 'mtn-500mb-2000' },    // 4.5GB 30days
+  '49': { serviceID: 'mtn-data', variationCode: 'mtn-3gb-1500' },      // 3GB 30days
+  '50': { serviceID: 'mtn-data', variationCode: 'mtn-100hr-5000' },    // 15GB 30days
 
-  // Glo
-  '42': { serviceID: 'glo-data', variationCode: 'glo-100mb' },
-  '35': { serviceID: 'glo-data', variationCode: 'glo-500mb' },
-  '68': { serviceID: 'glo-data', variationCode: 'glo-1-05gb' },
-  '36': { serviceID: 'glo-data', variationCode: 'glo-1-05gb' },
-  '40': { serviceID: 'glo-data', variationCode: 'glo-2-9gb' },
-  '37': { serviceID: 'glo-data', variationCode: 'glo-4-1gb' },
-  '38': { serviceID: 'glo-data', variationCode: 'glo-5-8gb' },
+  // Glo (actual VTpass variation codes)
+  '42': { serviceID: 'glo-data', variationCode: 'glo100' },            // 105MB 2days
+  '35': { serviceID: 'glo-data', variationCode: 'glo500' },            // 1.05GB 14days
+  '68': { serviceID: 'glo-data', variationCode: 'glo1000' },           // 2.5GB 30days
+  '36': { serviceID: 'glo-data', variationCode: 'glo1000' },           // 2.5GB 30days
+  '40': { serviceID: 'glo-data', variationCode: 'glo2000' },           // 5.8GB 30days
+  '37': { serviceID: 'glo-data', variationCode: 'glo3000' },           // 10GB 30days
+  '38': { serviceID: 'glo-data', variationCode: 'glo5000' },           // 18.25GB 30days
 
-  // Airtel
-  '70': { serviceID: 'airtel-data', variationCode: 'airtel-1gb-3days' },
-  '13': { serviceID: 'airtel-data', variationCode: 'airtel-500mb-30days' },
-  '15': { serviceID: 'airtel-data', variationCode: 'airtel-1-5gb-7days' },
-  '17': { serviceID: 'airtel-data', variationCode: 'airtel-2gb-30days' },
-  '18': { serviceID: 'airtel-data', variationCode: 'airtel-3gb-30days' },
-  '20': { serviceID: 'airtel-data', variationCode: 'airtel-8gb-30days' }
+  // Airtel (actual VTpass variation codes)
+  '70': { serviceID: 'airtel-data', variationCode: 'airt-600' },       // 1GB 14days
+  '13': { serviceID: 'airtel-data', variationCode: 'airt-500' },       // 750MB 14days
+  '15': { serviceID: 'airtel-data', variationCode: 'airt-1000-7' },    // 1.5GB 7days
+  '17': { serviceID: 'airtel-data', variationCode: 'airt-1500' },      // 3GB 30days (closest match to 2GB that fits within user N1,500 budget)
+  '18': { serviceID: 'airtel-data', variationCode: 'airt-1500' },      // 3GB 30days
+  '20': { serviceID: 'airtel-data', variationCode: 'airt-3000' }       // 8GB 30days
 };
 
 // Map of CheapDataHub planCode to details used for dynamic matching
