@@ -279,3 +279,14 @@ export const getPlans = async (req: Request, res: Response) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+export const getServiceVariations = async (req: Request, res: Response) => {
+  try {
+    const { serviceID } = req.params;
+    const variations = await vtuEngine.getServiceVariations(serviceID);
+    res.json(variations);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
+

@@ -27,6 +27,31 @@ const SERVICE_META: Record<string, { icon: React.ElementType; label: string; col
   CABLE:       { icon: Monitor,    label: 'Cable TV',    color: 'text-purple-400',  placeholder: 'e.g. DSTV-COMPACT' },
 }
 
+const ELECTRICITY_PROVIDERS = [
+  { id: 'ikeja-electric', name: 'Ikeja Electric (IKEDC)' },
+  { id: 'eko-electric', name: 'Eko Electric (EKEDC)' },
+  { id: 'abuja-electric', name: 'Abuja AEDC' },
+  { id: 'kano-electric', name: 'Kano Electric (KEDCO)' },
+  { id: 'portharcourt-electric', name: 'Port Harcourt (PHED)' },
+  { id: 'jos-electric', name: 'Jos Electric (JEDC)' },
+  { id: 'ibadan-electric', name: 'Ibadan Electric (IBEDC)' },
+  { id: 'kaduna-electric', name: 'Kaduna Electric (KAEDCO)' },
+  { id: 'enugu-electric', name: 'Enugu Electric (EEDC)' },
+  { id: 'benin-electric', name: 'Benin Electric (BEDC)' },
+]
+
+const METER_TYPES = [
+  { id: 'prepaid', name: 'Prepaid' },
+  { id: 'postpaid', name: 'Postpaid' },
+]
+
+const CABLE_PROVIDERS = [
+  { id: 'dstv', name: 'DStv' },
+  { id: 'gotv', name: 'GOtv' },
+  { id: 'startimes', name: 'StarTimes' },
+]
+
+
 const DATA_PLANS: Record<string, { id: string; name: string; price: number }[]> = {
   '1': [ // MTN
     { id: '43', name: '110MB (1 Day)', price: 100 },
@@ -85,6 +110,10 @@ export function PurchaseModal({ isOpen, onClose, serviceType, refreshProfile }: 
   const [errorMessage, setErrorMessage] = useState('')
   const [showReceipt, setShowReceipt] = useState(false)
 
+  // Dynamic variations state for Cable TV
+  const [variations, setVariations] = useState<any[]>([])
+  const [loadingVariations, setLoadingVariations] = useState(false)
+
   const meta = SERVICE_META[serviceType] ?? SERVICE_META['DATA']
   const Icon = meta.icon
 
@@ -128,6 +157,14 @@ export function PurchaseModal({ isOpen, onClose, serviceType, refreshProfile }: 
 
   useEffect(() => {
     if (isOpen) {
+      // Reset form states
+      setForm({ phone: '', planCode: '', amount: '' })
+      setSelectedNetwork(null)
+      setVariations([])
+      setStep(1)
+      setPinCode('')
+      setSetupPin('')
+
       // Check if user has a PIN configured
       api.get('/user/pin/configured')
         .then(res => {
@@ -143,6 +180,25 @@ export function PurchaseModal({ isOpen, onClose, serviceType, refreshProfile }: 
         .catch(err => console.error('Failed fetching dynamic plans', err))
     }
   }, [isOpen])
+
+  // Fetch Cable TV variations dynamically when service type is CABLE and selectedNetwork provider changes
+  useEffect(() => {
+    if (isOpen && serviceType === 'CABLE' && selectedNetwork) {
+      setLoadingVariations(true)
+      setVariations([])
+      api.get(`/vtu/variations/${selectedNetwork}`)
+        .then(res => {
+          setVariations(res.data)
+        })
+        .catch(err => {
+          console.error('Failed to fetch variations', err)
+          toast.error('Failed to load plans. Please try again.')
+        })
+        .finally(() => {
+          setLoadingVariations(false)
+        })
+    }
+  }, [isOpen, serviceType, selectedNetwork])
 
   // Construct dynamic data plans based on user tier
   const dynamicDataPlans: Record<string, { id: string; name: string; price: number }[]> = {
@@ -194,8 +250,8 @@ export function PurchaseModal({ isOpen, onClose, serviceType, refreshProfile }: 
 
   const handleFirstStepSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedNetwork && (serviceType === 'DATA' || serviceType === 'AIRTIME')) {
-      return toast.error('Please select a network provider')
+    if (!selectedNetwork && (serviceType === 'DATA' || serviceType === 'AIRTIME' || serviceType === 'CABLE' || serviceType === 'ELECTRICITY')) {
+      return toast.error('Please select a service provider')
     }
 
     if (!hasPin) {
@@ -204,6 +260,7 @@ export function PurchaseModal({ isOpen, onClose, serviceType, refreshProfile }: 
       setStep(2) // Proceeed to PIN entry
     }
   }
+
 
   const handleCreatePin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -426,7 +483,7 @@ export function PurchaseModal({ isOpen, onClose, serviceType, refreshProfile }: 
 
                 {purchaseState === 'IDLE' && step === 1 && (
                   <form onSubmit={handleFirstStepSubmit} className="space-y-6">
-                    {/* Network Selector */}
+                    {/* Network Selector (DATA and AIRTIME) */}
                     {(serviceType === 'DATA' || serviceType === 'AIRTIME') && (
                       <div className="space-y-3">
                         <label className="text-[10px] font-black uppercase tracking-widest text-brand-silver/40 px-1">
@@ -458,17 +515,117 @@ export function PurchaseModal({ isOpen, onClose, serviceType, refreshProfile }: 
                       </div>
                     )}
 
-                    <Input
-                      id="phone"
-                      label="Recipient Phone Number"
-                      type="tel"
-                      placeholder="08012345678"
-                      required
-                      value={form.phone}
-                      onChange={update('phone')}
-                    />
+                    {/* Cable TV Provider Selector */}
+                    {serviceType === 'CABLE' && (
+                      <div className="space-y-3">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-brand-silver/40 px-1">
+                          Select Cable TV Provider
+                        </label>
+                        <select 
+                          required
+                          value={selectedNetwork || ''}
+                          onChange={(e) => {
+                            setSelectedNetwork(e.target.value)
+                            setForm(prev => ({ ...prev, planCode: '', amount: '' }))
+                          }}
+                          className="w-full bg-white/5 border border-brand-royal/10 rounded-xl py-4 px-4 text-sm text-white focus:outline-none focus:border-brand-cyan transition-all appearance-none cursor-pointer"
+                        >
+                          <option value="" className="bg-brand-midnight">Choose provider...</option>
+                          {CABLE_PROVIDERS.map(prov => (
+                            <option key={prov.id} value={prov.id} className="bg-brand-midnight">
+                              {prov.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
 
-                    {serviceType === 'DATA' ? (
+                    {/* Electricity Provider Selector */}
+                    {serviceType === 'ELECTRICITY' && (
+                      <div className="space-y-3">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-brand-silver/40 px-1">
+                          Select Electricity Provider
+                        </label>
+                        <select 
+                          required
+                          value={selectedNetwork || ''}
+                          onChange={(e) => {
+                            setSelectedNetwork(e.target.value)
+                            setForm(prev => ({
+                              ...prev,
+                              planCode: `${e.target.value} ${prev.planCode.split(' ')[1] || 'prepaid'}`
+                            }))
+                          }}
+                          className="w-full bg-white/5 border border-brand-royal/10 rounded-xl py-4 px-4 text-sm text-white focus:outline-none focus:border-brand-cyan transition-all appearance-none cursor-pointer"
+                        >
+                          <option value="" className="bg-brand-midnight">Choose provider...</option>
+                          {ELECTRICITY_PROVIDERS.map(prov => (
+                            <option key={prov.id} value={prov.id} className="bg-brand-midnight">
+                              {prov.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Electricity Meter Type Selector */}
+                    {serviceType === 'ELECTRICITY' && (
+                      <div className="space-y-3">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-brand-silver/40 px-1">
+                          Select Meter Type
+                        </label>
+                        <select 
+                          required
+                          value={form.planCode.split(' ')[1] || 'prepaid'}
+                          onChange={(e) => {
+                            setForm(prev => ({
+                              ...prev,
+                              planCode: `${selectedNetwork || 'ikeja-electric'} ${e.target.value}`
+                            }))
+                          }}
+                          className="w-full bg-white/5 border border-brand-royal/10 rounded-xl py-4 px-4 text-sm text-white focus:outline-none focus:border-brand-cyan transition-all appearance-none cursor-pointer"
+                        >
+                          {METER_TYPES.map(type => (
+                            <option key={type.id} value={type.id} className="bg-brand-midnight">
+                              {type.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Dynamic Label Input for Phone / Meter / Smartcard */}
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-brand-silver/40 px-1">
+                        {serviceType === 'ELECTRICITY' 
+                          ? 'Meter Number' 
+                          : serviceType === 'CABLE' 
+                            ? 'Smartcard Number' 
+                            : 'Recipient Phone Number'}
+                      </label>
+                      <input
+                        type="tel"
+                        placeholder={
+                          serviceType === 'ELECTRICITY' 
+                            ? 'Enter meter number' 
+                            : serviceType === 'CABLE' 
+                              ? 'Enter smartcard number' 
+                              : '08012345678'
+                        }
+                        required
+                        value={form.phone}
+                        onChange={(e) => {
+                          const val = (serviceType === 'ELECTRICITY' || serviceType === 'CABLE')
+                            ? e.target.value.replace(/\D/g, '')
+                            : e.target.value;
+                          setForm(prev => ({ ...prev, phone: val }));
+                        }}
+                        className="w-full bg-white/5 border border-brand-royal/10 rounded-xl py-4 px-4 text-sm text-white focus:outline-none focus:border-brand-cyan transition-all"
+                      />
+                    </div>
+
+                    {/* DATA Plan Selector */}
+                    {serviceType === 'DATA' && (
                       <div className="space-y-3">
                         <label className="text-[10px] font-black uppercase tracking-widest text-brand-silver/40 px-1">
                           Select Data Plan
@@ -494,30 +651,62 @@ export function PurchaseModal({ isOpen, onClose, serviceType, refreshProfile }: 
                           ))}
                         </select>
                       </div>
-                    ) : serviceType === 'AIRTIME' ? null : (
-                      <Input
-                        id="planCode"
-                        label="Product / Meter Code"
-                        placeholder={meta.placeholder}
-                        value={form.planCode}
-                        onChange={update('planCode')}
-                      />
                     )}
 
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 translate-y-3 text-brand-silver/40 text-sm font-bold">₦</span>
-                      <Input
-                        id="amount"
-                        label="Amount (₦)"
-                        type="number"
-                        placeholder="0.00"
-                        required
-                        min={serviceType === 'AIRTIME' ? 50 : 100}
-                        value={form.amount}
-                        onChange={update('amount')}
-                        className="pl-8"
-                      />
+                    {/* Cable TV package selection dropdown list */}
+                    {serviceType === 'CABLE' && (
+                      <div className="space-y-3">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-brand-silver/40 px-1 flex justify-between items-center">
+                          <span>Select Cable Package</span>
+                          {loadingVariations && <span className="text-[9px] animate-pulse text-brand-cyan">Loading packages...</span>}
+                        </label>
+                        <select 
+                          required
+                          disabled={!selectedNetwork || loadingVariations}
+                          value={form.planCode ? form.planCode.split(':').slice(1).join(':') : ''}
+                          onChange={(e) => {
+                            const variation = variations.find(v => v.variation_code === e.target.value)
+                            setForm(prev => ({
+                              ...prev,
+                              planCode: `${selectedNetwork}:${e.target.value}`,
+                              amount: variation ? String(variation.variation_amount || variation.price || '') : prev.amount
+                            }))
+                          }}
+                          className="w-full bg-white/5 border border-brand-royal/10 rounded-xl py-4 px-4 text-sm text-white focus:outline-none focus:border-brand-cyan transition-all appearance-none cursor-pointer disabled:opacity-50"
+                        >
+                          <option value="" className="bg-brand-midnight">
+                            {loadingVariations ? 'Fetching packages...' : 'Choose a package...'}
+                          </option>
+                          {variations.map(v => (
+                            <option key={v.variation_code} value={v.variation_code} className="bg-brand-midnight">
+                              {v.name} - ₦{Number(v.variation_amount || v.price || 0).toLocaleString()}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Amount Input */}
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-brand-silver/40 px-1">
+                        Amount (₦)
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-silver/40 text-sm font-bold">₦</span>
+                        <input
+                          id="amount"
+                          type="number"
+                          placeholder="0.00"
+                          required
+                          disabled={serviceType === 'DATA' || (serviceType === 'CABLE' && !!form.planCode)}
+                          min={serviceType === 'AIRTIME' ? 50 : 100}
+                          value={form.amount}
+                          onChange={(e) => setForm(prev => ({ ...prev, amount: e.target.value }))}
+                          className="w-full bg-white/5 border border-brand-royal/10 rounded-xl py-4 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-brand-cyan transition-all disabled:opacity-50"
+                        />
+                      </div>
                     </div>
+
 
                     {/* Amount presets for Airtime */}
                     {serviceType === 'AIRTIME' && (
