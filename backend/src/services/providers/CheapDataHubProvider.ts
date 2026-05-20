@@ -83,6 +83,16 @@ export class CheapDataHubProvider extends ProviderService {
     throw new Error(`[${this.name}] Utilities are routed to VTpass.`);
   }
 
+  async buyTv(request: BuyRequest): Promise<any> {
+    // TV subscriptions are routed to VTpass per design
+    throw new Error(`[${this.name}] TV subscriptions are routed to VTpass.`);
+  }
+
+  async buyEducation(request: BuyRequest): Promise<any> {
+    // Education PINs are routed to VTpass per design
+    throw new Error(`[${this.name}] Education PINs are routed to VTpass.`);
+  }
+
   async sendSms(sender: string, recipients: string[], message: string): Promise<any> {
     try {
       console.log(`[${this.name}] Sending Bulk SMS from ${sender} to ${recipients.length} numbers...`);

@@ -35,6 +35,16 @@ export abstract class ProviderService {
   abstract buyUtility(request: BuyRequest): Promise<any>;
 
   /**
+   * Processes a TV/Cable subscription request.
+   */
+  abstract buyTv(request: BuyRequest): Promise<any>;
+
+  /**
+   * Processes an Education (WAEC/JAMB) PIN request.
+   */
+  abstract buyEducation(request: BuyRequest): Promise<any>;
+
+  /**
    * Processes a Bulk SMS request.
    */
   abstract sendSms(sender: string, recipients: string[], message: string): Promise<any>;

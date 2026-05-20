@@ -187,11 +187,12 @@ export const generateSingleAccount = async (req: Request, res: Response) => {
       }
 
       try {
+        const nameParts = user.name.split(' ');
+        const firstName = nameParts[0];
+        const lastName = nameParts.length > 1 ? nameParts[1] : 'User';
+
         let customerId = user.paystackCustomerId;
         if (!customerId) {
-          const nameParts = user.name.split(' ');
-          const firstName = nameParts[0];
-          const lastName = nameParts.length > 1 ? nameParts[1] : 'User';
           const customer = await PaymentService.createCustomer(
             user.email,
             firstName,
@@ -205,7 +206,12 @@ export const generateSingleAccount = async (req: Request, res: Response) => {
           return res.status(400).json({ error: 'Failed to create or retrieve Paystack customer profile' });
         }
 
-        const psAccount = await PaymentService.createVirtualAccount(customerId);
+        const psAccount = await PaymentService.createVirtualAccount(
+          customerId,
+          firstName,
+          lastName,
+          user.phone
+        );
         if (psAccount) {
           const accountNumber = psAccount.account_number;
           const bankName = psAccount.bank?.name || 'Wema Bank';

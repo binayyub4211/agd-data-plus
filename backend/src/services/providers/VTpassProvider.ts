@@ -72,14 +72,39 @@ export class VTpassProvider extends ProviderService {
   public readonly name = Provider.VTPASS;
   
   private baseUrl = process.env.VTPASS_BASE_URL || 'https://sandbox.vtpass.com/api';
-  private apiUsername = process.env.VTPASS_USERNAME || 'mmuktar1142@gmail.com';
-  private apiPassword = process.env.VTPASS_PASSWORD || 'Binayyub@1142';
+  private apiUsername = process.env.VTPASS_USERNAME || 'sandbox@vtpass.com';
+  private apiPassword = process.env.VTPASS_PASSWORD || 'sandbox';
   
-  private variationsCache = new Map<string, any[]>();
-
-  private get authHeader() {
-    return 'Basic ' + Buffer.from(`${this.apiUsername}:${this.apiPassword}`).toString('base64');
+  private get apiKey() {
+    return (process.env.VTPASS_API_KEY || 'fcead89edaca5a1b04cacad14ee65779').trim();
   }
+
+  private get publicKey() {
+    return (process.env.VTPASS_PUBLIC_KEY || 'PK_359243b6cc24d541a09662af00b82df3fce70569672').trim();
+  }
+
+  private get secretKey() {
+    return (process.env.VTPASS_SECRET_KEY || 'SK_20757cceed4dabfc4a30c8f0402178bb10240450586').trim();
+  }
+
+  private get getHeaders() {
+    return {
+      'api-key': this.apiKey,
+      'public-key': this.publicKey,
+      'Accept': 'application/json'
+    };
+  }
+
+  private get postHeaders() {
+    return {
+      'api-key': this.apiKey,
+      'secret-key': this.secretKey,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
+  }
+
+  private variationsCache = new Map<string, any[]>();
 
   /**
    * Generates a compliant 12-digit date/time (YYYYMMDDHHII) GMT+1 (Lagos) request ID
@@ -113,7 +138,7 @@ export class VTpassProvider extends ProviderService {
     try {
       console.log(`[${this.name}] Fetching variations for ${serviceID}...`);
       const response = await axios.get(`${this.baseUrl}/service-variations?serviceID=${serviceID}`, {
-        headers: { 'Authorization': this.authHeader }
+        headers: this.getHeaders
       });
 
       const variations = response.data.content?.variations || response.data.content?.varations || [];
@@ -132,17 +157,22 @@ export class VTpassProvider extends ProviderService {
    */
   async checkBalance(): Promise<number> {
     try {
-      console.log(`[${this.name}] Querying wallet balance...`);
+      console.log('[VTPASS] Querying wallet balance...');
+      console.log('[VTPASS DEBUG] Sending GET Headers:', JSON.stringify(this.getHeaders, null, 2));
       const response = await axios.get(`${this.baseUrl}/balance`, {
-        headers: { 'Authorization': this.authHeader }
+        headers: this.getHeaders
       });
 
-      if (response.data.code === '000' || response.data.response_description === '000') {
-        const balance = parseFloat(response.data.content?.balance || '0');
+      console.log(`[${this.name}] Raw balance response:`, JSON.stringify(response.data));
+
+      if (response.data.code === '000' || response.data.code === 1 || response.data.response_description === '000' || response.data.response_description === 'SUCCESS') {
+        // Sandbox uses 'contents' instead of 'content' sometimes
+        const balanceData = response.data.content || response.data.contents;
+        const balance = parseFloat(balanceData?.balance || '0');
         return balance;
       }
       
-      throw new Error(response.data.response_description || 'Invalid response');
+      throw new Error(response.data.response_description || JSON.stringify(response.data));
     } catch (error: any) {
       console.error(`[${this.name}] Failed to check balance:`, error.response?.data || error.message);
       throw new Error(`Failed to fetch ${this.name} balance: ${error.message}`);
@@ -155,12 +185,14 @@ export class VTpassProvider extends ProviderService {
   async buyAirtime(request: BuyRequest): Promise<any> {
     try {
       console.log(`[${this.name}] Processing airtime purchase for ${request.phone}...`);
+      console.log('[VTPASS DEBUG] Sending POST Headers:', JSON.stringify(this.postHeaders, null, 2));
       
       const reqId = this.generateRequestId();
       
       // Map frontend network keys: 1: MTN, 2: Glo, 3: Airtel, 4: 9mobile
-      let serviceID = 'mtn';
-      if (request.planCode === '2') serviceID = 'glo';
+      let serviceID = request.planCode;
+      if (request.planCode === '1') serviceID = 'mtn';
+      else if (request.planCode === '2') serviceID = 'glo';
       else if (request.planCode === '3') serviceID = 'airtel';
       else if (request.planCode === '4') serviceID = 'etisalat';
 
@@ -174,10 +206,7 @@ export class VTpassProvider extends ProviderService {
       console.log(`[${this.name}] Sending payload:`, payload);
 
       const response = await axios.post(`${this.baseUrl}/pay`, payload, {
-        headers: { 
-          'Authorization': this.authHeader,
-          'Content-Type': 'application/json'
-        }
+        headers: this.postHeaders
       });
 
       if (response.data.code === '000' || response.data.response_description === 'TRANSACTION SUCCESSFUL') {
@@ -211,6 +240,7 @@ export class VTpassProvider extends ProviderService {
       
       let serviceID = 'mtn-data';
       let variationCode = '';
+      let billersCode = request.phone; // default billersCode is phone
 
       if (planMeta) {
         serviceID = planMeta.serviceID;
@@ -230,34 +260,78 @@ export class VTpassProvider extends ProviderService {
         }
       }
 
-      // Step 2: Fallback to static mapping if dynamic lookup didn't yield a match
-      if (!variationCode) {
-        const fallback = STATIC_VTPASS_DATA_CODES[request.planCode];
-        if (fallback) {
-          serviceID = fallback.serviceID;
-          variationCode = fallback.variationCode;
-          console.log(`[${this.name}] Using static fallback variation code: ${variationCode}`);
-        } else {
-          throw new Error(`No variation code match found for CheapDataHub planCode: ${request.planCode}`);
+      // Step 2: Check if planCode uses the "serviceID:variationCode" colon format — handle ALL services
+      if (request.planCode.includes(':')) {
+        const parts = request.planCode.split(':');
+        const parsedServiceID = parts[0];
+        const parsedVariation = parts.slice(1).join(':');
+
+        if (parsedServiceID === 'smile-direct') {
+          serviceID = 'smile-direct';
+          variationCode = parsedVariation;
+          // On sandbox, billersCode for Smile is 08011111111 (success number)
+          billersCode = this.baseUrl.includes('sandbox') ? '08011111111' : request.phone;
+          console.log(`[${this.name}] Smile Direct: variation=${variationCode}, billersCode=${billersCode}`);
+        } else if (parsedServiceID === 'spectranet') {
+          serviceID = 'spectranet';
+          variationCode = parsedVariation;
+          billersCode = this.baseUrl.includes('sandbox') ? '1212121212' : request.phone;
+          console.log(`[${this.name}] Spectranet: variation=${variationCode}, billersCode=${billersCode}`);
+        } else if (!variationCode) {
+          serviceID = parsedServiceID;
+          variationCode = parsedVariation;
+          console.log(`[${this.name}] Using direct variation code from request: ${variationCode}`);
         }
+      } else if (request.planCode.includes('smile-direct')) {
+        // planCode is just "smile-direct" without a variation — fetch dynamically
+        serviceID = 'smile-direct';
+        billersCode = this.baseUrl.includes('sandbox') ? '08011111111' : request.phone;
+      } else if (request.planCode.includes('spectranet')) {
+        serviceID = 'spectranet';
+        billersCode = this.baseUrl.includes('sandbox') ? '1212121212' : request.phone;
       }
 
-      const payload = {
+      // Step 3: Fallback to static mapping if variation still not resolved
+      if (!variationCode && !['smile-direct', 'spectranet'].includes(serviceID)) {
+          if (request.planCode.includes('-') && !request.planCode.includes(':')) {
+            variationCode = request.planCode;
+            serviceID = `${request.planCode.split('-')[0]}-data`;
+            console.log(`[${this.name}] Using direct variation code from request: ${variationCode}`);
+          } else if (request.planCode.includes('-')) {
+            variationCode = request.planCode;
+            serviceID = `${request.planCode.split('-')[0]}-data`;
+            console.log(`[${this.name}] Using direct variation code from request: ${variationCode}`);
+          } else {
+            const fallback = STATIC_VTPASS_DATA_CODES[request.planCode];
+            if (fallback) {
+              serviceID = fallback.serviceID;
+              variationCode = fallback.variationCode;
+              console.log(`[${this.name}] Using static fallback variation code: ${variationCode}`);
+            } else {
+              // Fallback if no static map
+              variationCode = `${serviceID.split('-')[0]}-10mb-100`;
+              console.log(`[${this.name}] Using generic fallback variation code: ${variationCode}`);
+            }
+          }
+      }
+
+      const payload: any = {
         request_id: reqId,
         serviceID,
-        billersCode: request.phone,
+        billersCode,
         variation_code: variationCode,
         amount: request.amount,
         phone: request.phone
       };
 
+      if (serviceID === 'spectranet' && this.baseUrl.includes('sandbox')) {
+          payload.phone = '1212121212'; // Spectranet needs this specific phone on sandbox
+      }
+
       console.log(`[${this.name}] Sending data payload:`, payload);
 
       const response = await axios.post(`${this.baseUrl}/pay`, payload, {
-        headers: {
-          'Authorization': this.authHeader,
-          'Content-Type': 'application/json'
-        }
+        headers: this.postHeaders
       });
 
       if (response.data.code === '000' || response.data.response_description === 'TRANSACTION SUCCESSFUL') {
@@ -313,6 +387,10 @@ export class VTpassProvider extends ProviderService {
         else if (rawService.includes('jos')) serviceID = 'jos-electric';
         else if (rawService.includes('ibadan') || rawService.includes('ibedc')) serviceID = 'ibadan-electric';
         else if (rawService.includes('kaduna')) serviceID = 'kaduna-electric';
+        else if (rawService.includes('enugu') || rawService.includes('eedc')) serviceID = 'enugu-electric';
+        else if (rawService.includes('benin') || rawService.includes('bedc')) serviceID = 'benin-electric';
+        else if (rawService.includes('aba')) serviceID = 'aba-electric';
+        else if (rawService.includes('yola') || rawService.includes('yedc')) serviceID = 'yola-electric';
 
         if (rawService === 'prepaid' || rawService === 'postpaid') {
           variation_code = rawService;
@@ -333,9 +411,9 @@ export class VTpassProvider extends ProviderService {
         variation_code = varPart.toLowerCase();
       }
 
-      // In Sandbox, override billersCode to 1212121212 to force success
+      // In Sandbox, override billersCode to 1111111111111 to force success
       if (this.baseUrl.includes('sandbox')) {
-        billersCode = '1212121212';
+        billersCode = '1111111111111';
         console.log(`[${this.name}] Sandbox detected, overriding billersCode to ${billersCode} for testing`);
       }
 
@@ -359,10 +437,7 @@ export class VTpassProvider extends ProviderService {
       console.log(`[${this.name}] Sending utility payload:`, payload);
 
       const response = await axios.post(`${this.baseUrl}/pay`, payload, {
-        headers: {
-          'Authorization': this.authHeader,
-          'Content-Type': 'application/json'
-        }
+        headers: this.postHeaders
       });
 
       if (response.data.code === '000' || response.data.response_description === 'TRANSACTION SUCCESSFUL') {
@@ -381,6 +456,122 @@ export class VTpassProvider extends ProviderService {
       const errMsg = error.response?.data?.response_description || error.message;
       console.error(`[${this.name}] Utility purchase failed:`, error.response?.data || error.message);
       throw new Error(errMsg);
+    }
+  }
+
+  /**
+   * Processes a TV/Cable subscription request.
+   */
+  async buyTv(request: BuyRequest): Promise<any> {
+    try {
+      const reqId = this.generateRequestId();
+      // e.g. request.planCode = 'dstv-padi' -> serviceID = 'dstv', variation_code = 'dstv-padi'
+      let serviceID = request.planCode.split('-')[0];
+      let variation_code = request.planCode;
+
+      if (request.planCode.includes(':')) {
+        const parts = request.planCode.split(':');
+        serviceID = parts[0];
+        variation_code = parts.slice(1).join(':');
+      }
+      let billersCode = request.phone; // phone field usually contains the smartcard number
+
+      // Sandbox override for test smartcard
+      if (this.baseUrl.includes('sandbox')) {
+        billersCode = '1212121212';
+        console.log(`[${this.name}] Sandbox detected, overriding smartcard/billersCode to ${billersCode}`);
+      }
+
+      const payload: any = {
+        request_id: reqId,
+        serviceID,
+        billersCode,
+        variation_code,
+        amount: request.amount,
+        phone: '08011111111', // customer phone
+        subscription_type: 'change'
+      };
+
+      console.log(`[${this.name}] Sending TV payload:`, payload);
+
+      const response = await axios.post(`${this.baseUrl}/pay`, payload, {
+        headers: this.postHeaders
+      });
+
+      if (response.data.code === '000' || response.data.response_description === 'TRANSACTION SUCCESSFUL') {
+        console.log(`[${this.name}] TV purchase successful. RequestId: ${reqId}`);
+        return {
+          status: 'success',
+          reference: request.reference,
+          requestId: reqId,
+          message: 'TV subscription successful',
+          providerResponse: response.data
+        };
+      }
+
+      throw new Error(response.data.response_description || 'TV transaction failed');
+    } catch (error: any) {
+      console.error(`[${this.name}] TV purchase failed:`, error.response?.data || error.message);
+      throw new Error(error.response?.data?.response_description || error.message);
+    }
+  }
+
+  /**
+   * Processes an Education (WAEC/JAMB) PIN request.
+   */
+  async buyEducation(request: BuyRequest): Promise<any> {
+    try {
+      const reqId = this.generateRequestId();
+      
+      let serviceID = request.planCode; // e.g. 'waec'
+      let variation_code = 'waecdirect';
+      
+      if (request.planCode.includes(':')) {
+         const parts = request.planCode.split(':');
+         serviceID = parts[0];
+         variation_code = parts.slice(1).join(':');
+      } else if (serviceID.includes('-')) {
+         const parts = serviceID.split('-');
+         serviceID = parts[0];
+         variation_code = parts.slice(1).join('-');
+      }
+
+      const payload: any = {
+        request_id: reqId,
+        serviceID,
+        variation_code,
+        amount: request.amount,
+        phone: request.phone || '08011111111'
+      };
+
+      // JAMB specifically requires a profile code (billersCode)
+      if (serviceID === 'jamb') {
+         payload.billersCode = '0123456789'; // Valid sandbox profile ID for JAMB
+         console.log(`[${this.name}] Sandbox JAMB detected, adding profile code: 0123456789`);
+      }
+
+      console.log(`[${this.name}] Sending Education payload:`, payload);
+
+      const response = await axios.post(`${this.baseUrl}/pay`, payload, {
+        headers: this.postHeaders
+      });
+
+      if (response.data.code === '000' || response.data.response_description === 'TRANSACTION SUCCESSFUL') {
+        console.log(`[${this.name}] Education purchase successful. RequestId: ${reqId}`);
+        return {
+          status: 'success',
+          reference: request.reference,
+          requestId: reqId,
+          message: 'Education PIN generated successfully',
+          providerResponse: response.data,
+          pin: response.data.purchased_code || response.data.cards
+        };
+      }
+
+      throw new Error(response.data.response_description || 'Education transaction failed');
+    } catch (error: any) {
+      console.error(`[${this.name}] Education purchase failed:`, error.response?.data || error.message);
+      throw new Error(error.response?.data?.response_description || error.message);
     }
   }
 

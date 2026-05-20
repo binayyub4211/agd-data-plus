@@ -91,7 +91,12 @@ export const register = async (req: Request, res: Response) => {
       );
       
       // Create virtual account for customer
-      psAccount = await PaymentService.createVirtualAccount(customer.customer_code);
+      psAccount = await PaymentService.createVirtualAccount(
+        customer.customer_code,
+        firstName,
+        lastName,
+        validatedData.phone
+      );
     } catch (e) {
       console.warn('Paystack Account Generation Failed:', e);
     }

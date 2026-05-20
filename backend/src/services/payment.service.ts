@@ -44,11 +44,16 @@ export class PaymentService {
     }
   }
 
-  static async createVirtualAccount(customerCode: string) {
+  static async createVirtualAccount(customerCode: string, first_name?: string, last_name?: string, phone?: string) {
     try {
+      const payload: any = { customer: customerCode, preferred_bank: 'wema-bank' };
+      if (first_name) payload.first_name = first_name;
+      if (last_name) payload.last_name = last_name;
+      if (phone) payload.phone = phone;
+
       const response = await axios.post(
         `${this.PAYSTACK_BASE_URL}/dedicated_account`,
-        { customer: customerCode, preferred_bank: 'wema-bank' }, 
+        payload, 
         {
           headers: { Authorization: `Bearer ${config.PAYSTACK_SECRET_KEY}` },
         }

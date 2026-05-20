@@ -150,7 +150,12 @@ export const generateAccounts = async (req: Request, res: Response) => {
         const firstName = nameParts[0];
         const lastName = nameParts.length > 1 ? nameParts[1] : 'User';
         const customer = await PaymentService.createCustomer(user.email, firstName, lastName, user.phone);
-        psAccount = await PaymentService.createVirtualAccount(customer.customer_code);
+        psAccount = await PaymentService.createVirtualAccount(
+          customer.customer_code,
+          firstName,
+          lastName,
+          user.phone
+        );
         if (provider === 'PAYSTACK' && !psAccount) throw new Error('Paystack could not generate account at this time');
       } catch (e: any) { 
         console.error('PS Gen Error:', e); 
