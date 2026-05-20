@@ -9,6 +9,7 @@ import adminRoutes from './routes/admin.routes';
 import notificationRoutes from './routes/notification.routes';
 import userRoutes from './routes/user.routes';
 import systemRoutes from './routes/system.routes';
+import whatsappRoutes from './routes/whatsapp.routes';
 import { paystackWebhook } from './controllers/webhook.controller';
 
 const app = express();
@@ -58,6 +59,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/system', systemRoutes);
+app.use('/api/whatsapp', whatsappRoutes);
 
 // Healthcheck route
 app.get('/health', (req, res) => {

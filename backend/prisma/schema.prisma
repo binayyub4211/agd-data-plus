@@ -191,3 +191,16 @@ model SystemSetting {
 
   @@map("system_settings")
 }
+
+model WhatsAppSession {
+  id          String   @id @default(uuid())
+  phone       String   @unique // The customer's WhatsApp number (e.g. "2349016514818")
+  state       String   @default("IDLE") // IDLE, REGISTER_EMAIL, REGISTER_PASSWORD, SELECT_SERVICE, SELECT_NETWORK, ENTER_BENEFICIARY, SELECT_PLAN, ENTER_PIN
+  stepData    String?  // JSON string containing active transaction data
+  userId      String?  // Linked user ID if authenticated
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("whatsapp_sessions")
+}
+
