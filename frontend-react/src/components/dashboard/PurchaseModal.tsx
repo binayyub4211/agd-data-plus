@@ -39,6 +39,7 @@ const ELECTRICITY_PROVIDERS = [
   { id: 'kaduna-electric', name: 'Kaduna Electric (KAEDCO)' },
   { id: 'enugu-electric', name: 'Enugu Electric (EEDC)' },
   { id: 'benin-electric', name: 'Benin Electric (BEDC)' },
+  { id: 'yola-electric', name: 'Yola Electric (YEDC)' },
 ]
 
 const METER_TYPES = [
