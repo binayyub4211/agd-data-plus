@@ -13,7 +13,7 @@ import { NotificationBell } from '@/components/dashboard/NotificationBell'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
 import {
   Wallet, Copy, Banknote, ShieldCheck, Check, ShieldAlert, Mail,
-  Wifi, Smartphone, Zap, Monitor, LogOut, User, Bell, Clock, ArrowDownLeft, Settings
+  Wifi, Smartphone, Zap, Monitor, LogOut, User, Bell, Clock, ArrowDownLeft, Settings, Printer
 } from 'lucide-react'
 
 const PRIMARY_SERVICES = [
@@ -26,6 +26,7 @@ const PRIMARY_SERVICES = [
 const SECONDARY_SERVICES = [
   { id: 'SMS',         name: 'Bulk SMS',    icon: Mail,        border: 'border-brand-cyan/30', glow: 'group-hover:bg-brand-cyan/20'   },
   { id: 'EXAM',        name: 'Exam PINs',   icon: ShieldCheck, border: 'border-red-500/30',    glow: 'group-hover:bg-red-500/20'      },
+  { id: 'NIN',         name: 'NIN Print',   icon: Printer,     border: 'border-brand-gold/30', glow: 'group-hover:bg-brand-gold/20'   },
   { id: 'SPECTRANET',  name: 'Spectranet',  icon: Wifi,        border: 'border-orange-500/30', glow: 'group-hover:bg-orange-500/20'  },
   { id: 'SMILE',       name: 'Smile 4G',    icon: Wifi,        border: 'border-yellow-500/30', glow: 'group-hover:bg-yellow-500/20'  },
 ]
@@ -350,6 +351,8 @@ export function DashboardPage() {
                       onClick={() => {
                         if (svc.id === 'SMS') {
                           navigate('/bulksms')
+                        } else if (svc.id === 'NIN') {
+                          navigate('/dashboard/nin')
                         } else {
                           setModalService(svc.id)
                         }

@@ -13,6 +13,7 @@ import { BulkSmsPage } from '@/pages/dashboard/BulkSmsPage'
 import { UserSettingsPage } from '@/pages/dashboard/UserSettingsPage'
 import { ProfilePage } from '@/pages/dashboard/ProfilePage'
 import { TransactionsPage } from '@/pages/dashboard/TransactionsPage'
+import { NinSlipCenter } from '@/pages/dashboard/NinSlipCenter'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { GlobalAlertModal } from '@/components/layout/GlobalAlertModal'
 import { UpdateModal } from '@/components/layout/UpdateModal'
@@ -86,6 +87,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <TransactionsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/nin"
+            element={
+              <ProtectedRoute>
+                <NinSlipCenter />
               </ProtectedRoute>
             }
           />
