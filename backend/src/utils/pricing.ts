@@ -44,7 +44,12 @@ export const DEFAULT_PLANS = [
   // Cable TV (VTpass)
   { planCode: 'DSTV', serviceType: 'CABLE', provider: 'VTPASS', providerPrice: 1.00, sellingPrice: 1.00, resellerPrice: 1.00 },
   { planCode: 'GOTV', serviceType: 'CABLE', provider: 'VTPASS', providerPrice: 1.00, sellingPrice: 1.00, resellerPrice: 1.00 },
-  { planCode: 'STARTIMES', serviceType: 'CABLE', provider: 'VTPASS', providerPrice: 1.00, sellingPrice: 1.00, resellerPrice: 1.00 }
+  { planCode: 'STARTIMES', serviceType: 'CABLE', provider: 'VTPASS', providerPrice: 1.00, sellingPrice: 1.00, resellerPrice: 1.00 },
+
+  // NIN (National Identification Number Slip Printing)
+  { planCode: 'NIN_BASIC', serviceType: 'NIN', provider: 'NIMC', providerPrice: 50.00, sellingPrice: 100.00, resellerPrice: 80.00 },
+  { planCode: 'NIN_STANDARD', serviceType: 'NIN', provider: 'NIMC', providerPrice: 80.00, sellingPrice: 150.00, resellerPrice: 120.00 },
+  { planCode: 'NIN_PREMIUM', serviceType: 'NIN', provider: 'NIMC', providerPrice: 120.00, sellingPrice: 250.00, resellerPrice: 200.00 }
 ];
 
 export async function seedDefaultServicePrices() {
