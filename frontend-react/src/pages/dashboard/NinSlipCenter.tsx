@@ -42,6 +42,7 @@ export function NinSlipCenter() {
   
   // Main form fields
   const [ninInput, setNinInput] = useState('')
+  const [searchType, setSearchType] = useState<'nin' | 'phone'>('nin')
   const [slipType, setSlipType] = useState<'NIN_BASIC' | 'NIN_STANDARD' | 'NIN_PREMIUM'>('NIN_PREMIUM')
   const [consent, setConsent] = useState(false)
   
@@ -134,9 +135,9 @@ export function NinSlipCenter() {
   // Calculate price based on user tier and slip type
   const getPrice = (type: 'NIN_BASIC' | 'NIN_STANDARD' | 'NIN_PREMIUM') => {
     const isReseller = role === 'RESELLER' || role === 'ADMIN'
-    if (type === 'NIN_BASIC') return isReseller ? 80 : 100
-    if (type === 'NIN_STANDARD') return isReseller ? 120 : 150
-    return isReseller ? 200 : 250
+    if (type === 'NIN_BASIC') return isReseller ? 220 : 250
+    if (type === 'NIN_STANDARD') return isReseller ? 250 : 300
+    return isReseller ? 350 : 450
   }
 
   const currentPrice = getPrice(slipType)
@@ -144,7 +145,7 @@ export function NinSlipCenter() {
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (ninInput.length !== 11) {
-      return toast.error('NIN must be exactly 11 digits')
+      return toast.error(`${searchType === 'nin' ? 'NIN' : 'Phone Number'} must be exactly 11 digits`)
     }
     if (!consent) {
       return toast.error('You must check the consent box to proceed')
@@ -184,6 +185,7 @@ export function NinSlipCenter() {
     try {
       const response = await api.post('/vtu/nin/verify', {
         nin: ninInput,
+        searchType,
         slipType,
         pin: pinCode,
         consent: true
@@ -502,15 +504,46 @@ export function NinSlipCenter() {
                         </div>
                       </div>
 
-                      {/* NIN Input */}
+                      {/* Search Type Switcher */}
                       <div className="space-y-2">
                         <label className="text-[10px] font-black uppercase tracking-widest text-brand-silver/40 px-1">
-                          NIN (National Identification Number)
+                          Search Identifier Type
+                        </label>
+                        <div className="grid grid-cols-2 gap-2 bg-white/5 p-1 rounded-xl border border-brand-royal/10">
+                          <button
+                            type="button"
+                            onClick={() => setSearchType('nin')}
+                            className={`py-2.5 px-3 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${
+                              searchType === 'nin'
+                                ? 'bg-brand-cyan text-brand-midnight shadow-[0_0_15px_rgba(0,212,255,0.15)]'
+                                : 'text-brand-silver/60 hover:text-white'
+                            }`}
+                          >
+                            NIN Number
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSearchType('phone')}
+                            className={`py-2.5 px-3 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${
+                              searchType === 'phone'
+                                ? 'bg-brand-cyan text-brand-midnight shadow-[0_0_15px_rgba(0,212,255,0.15)]'
+                                : 'text-brand-silver/60 hover:text-white'
+                            }`}
+                          >
+                            Phone Number
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* NIN / Phone Input */}
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-brand-silver/40 px-1">
+                          {searchType === 'nin' ? 'NIN (National Identification Number)' : 'Registered Phone Number'}
                         </label>
                         <input
                           type="text"
                           maxLength={11}
-                          placeholder="Enter 11-digit NIN / vNIN"
+                          placeholder={searchType === 'nin' ? 'Enter 11-digit NIN' : 'Enter 11-digit Phone Number'}
                           required
                           value={ninInput}
                           onChange={(e) => setNinInput(e.target.value.replace(/\D/g, ''))}
@@ -1091,7 +1124,7 @@ export function NinSlipCenter() {
                 <div>
                   <h4 className="text-sm font-black uppercase text-white tracking-widest">Awaiting Verification</h4>
                   <p className="text-xs text-brand-silver/40 mt-1 leading-relaxed">
-                    Verify an 11-digit NIN using the secure sidebar form to render high-fidelity document previews.
+                    Verify using an 11-digit NIN or Phone number via the secure form to render high-fidelity document previews.
                   </p>
                 </div>
               </div>
@@ -1122,7 +1155,7 @@ export function NinSlipCenter() {
           <div className="relative max-w-xs w-full">
             <input
               type="text"
-              placeholder="Search by NIN..."
+              placeholder="Search by NIN / Phone..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value.replace(/\D/g, ''))}
               className="w-full bg-white/5 border border-brand-royal/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-brand-cyan transition-all pl-9"

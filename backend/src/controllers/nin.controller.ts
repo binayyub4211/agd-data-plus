@@ -12,7 +12,8 @@ import { NinService } from '../services/nin.service';
 const ninService = new NinService();
 
 const ninVerifySchema = z.object({
-  nin: z.string().length(11, 'NIN must be exactly 11 digits'),
+  nin: z.string().length(11, 'NIN or Phone number must be exactly 11 digits'),
+  searchType: z.enum(['nin', 'phone']).optional().default('nin'),
   slipType: z.enum(['NIN_BASIC', 'NIN_STANDARD', 'NIN_PREMIUM']),
   pin: z.string().length(4, 'Transaction PIN must be 4 digits'),
   consent: z.literal(true, {
@@ -150,7 +151,7 @@ export const verifyNinSlip = async (req: Request, res: Response) => {
       }
 
       // Create PENDING transaction
-      const reference = `AGD-NIN-\${uuidv4().slice(0, 8).toUpperCase()}`;
+      const reference = `AGD-NIN-${uuidv4().slice(0, 8).toUpperCase()}`;
       const transaction = await tx.transaction.create({
         data: {
           userId,
@@ -160,7 +161,7 @@ export const verifyNinSlip = async (req: Request, res: Response) => {
           status: TransactionStatus.PENDING,
           provider: Provider.NIMC, // NIMC/ArewaWise
           reference,
-          description: `NIN Slip print (\${validated.slipType}) for ID: \${validated.nin}`,
+          description: `NIN Slip print (${validated.slipType}) for ${validated.searchType === 'nin' ? 'NIN' : 'Phone'}: ${validated.nin}`,
         },
       });
 
@@ -187,8 +188,8 @@ export const verifyNinSlip = async (req: Request, res: Response) => {
 
     // 3. Call external identity provider API outside DB lock
     try {
-      console.log(`[NIN Controller] Cache miss. Fetching ArewaWise slip for NIN: \${validated.nin}, slipType: \${apiSlipType}...`);
-      const slipResponse = await ninService.fetchArewaWiseSlip(validated.nin, 'nin', apiSlipType);
+      console.log(`[NIN Controller] Cache miss. Fetching ArewaWise slip for NIN: ${validated.nin}, searchType: ${validated.searchType}, slipType: ${apiSlipType}...`);
+      const slipResponse = await ninService.fetchArewaWiseSlip(validated.nin, validated.searchType, apiSlipType);
 
       if (!slipResponse.success || !slipResponse.pdf) {
         throw new Error(slipResponse.message || 'Failed to fetch slip PDF from ArewaWise');
@@ -200,12 +201,12 @@ export const verifyNinSlip = async (req: Request, res: Response) => {
         fs.mkdirSync(uploadsDir, { recursive: true });
       }
 
-      const filename = `\${userId}_\${validated.nin}_\${apiSlipType}.pdf`;
+      const filename = `${userId}_${validated.nin}_${apiSlipType}.pdf`;
       const pdfPath = path.join(uploadsDir, filename);
       const pdfBuffer = Buffer.from(slipResponse.pdf, 'base64');
       fs.writeFileSync(pdfPath, pdfBuffer);
 
-      console.log(`[NIN Controller] Saved NIN PDF slip to server disk: \${pdfPath}`);
+      console.log(`[NIN Controller] Saved NIN PDF slip to server disk: ${pdfPath}`);
 
       // 5. Store record in database
       const newVerification = await prisma.ninVerification.upsert({
@@ -218,11 +219,12 @@ export const verifyNinSlip = async (req: Request, res: Response) => {
         },
         update: {
           pdfPath,
+          searchType: validated.searchType,
         },
         create: {
           userId,
           nin: validated.nin,
-          searchType: 'nin',
+          searchType: validated.searchType,
           slipType: apiSlipType,
           pdfPath,
         },
