@@ -50,6 +50,7 @@ model User {
   transactions   Transaction[]
   auditLogs      AuditLog[]
   notifications  Notification[]
+  ninVerifications NinVerification[]
 
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
@@ -202,5 +203,20 @@ model WhatsAppSession {
   updatedAt   DateTime @updatedAt
 
   @@map("whatsapp_sessions")
+}
+
+model NinVerification {
+  id          String   @id @default(uuid())
+  userId      String
+  nin         String
+  searchType  String   @default("nin")
+  slipType    String   // premium, standard, regular, information
+  pdfPath     String   // Absolute or relative path on server filesystem
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, nin, slipType])
+  @@map("nin_verifications")
 }
 

@@ -51,6 +51,66 @@ export function NinSlipCenter() {
   // PDF download loading
   const [downloading, setDownloading] = useState(false)
 
+  // History and cache state variables
+  interface NinHistoryItem {
+    id: string
+    nin: string
+    searchType: string
+    slipType: string
+    createdAt: string
+    downloadUrl: string
+  }
+
+  const [history, setHistory] = useState<NinHistoryItem[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
+
+  const fetchHistory = async () => {
+    setHistoryLoading(true)
+    try {
+      const res = await api.get('/vtu/nin/history')
+      setHistory(res.data.history || [])
+    } catch (err) {
+      console.error('Failed to fetch NIN verification history', err)
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
+
+  const downloadCachedSlip = async (item: NinHistoryItem) => {
+    setDownloadingId(item.id)
+    try {
+      toast.loading('Fetching cached NIN PDF...', { id: 'download-pdf' })
+      const response = await api.get(`/vtu/nin/download/${item.id}`, {
+        responseType: 'blob'
+      })
+      
+      const blob = new Blob([response.data], { type: 'application/pdf' })
+      const url = window.URL.createObjectURL(blob)
+      
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', `NIN_Slip_${item.slipType.toUpperCase()}_${item.nin}.pdf`)
+      document.body.appendChild(link)
+      link.click()
+      
+      link.parentNode?.removeChild(link)
+      window.URL.revokeObjectURL(url)
+      
+      toast.success('Official PDF downloaded successfully!', { id: 'download-pdf' })
+    } catch (err) {
+      console.error(err)
+      toast.error('Failed to download PDF.', { id: 'download-pdf' })
+    } finally {
+      setDownloadingId(null)
+    }
+  }
+
+  const filteredHistory = history.filter(item => 
+    item.nin.includes(searchQuery)
+  )
+
   // Fetch balance and check PIN config on mount
   const fetchInitialData = async () => {
     try {
@@ -68,6 +128,7 @@ export function NinSlipCenter() {
 
   useEffect(() => {
     fetchInitialData()
+    fetchHistory()
   }, [])
 
   // Calculate price based on user tier and slip type
@@ -130,6 +191,7 @@ export function NinSlipCenter() {
       toast.success('NIN Verified successfully!')
       setVerifiedData(response.data.data)
       fetchInitialData() // refresh balance
+      fetchHistory() // refresh history list
     } catch (err: any) {
       if (err.response?.data?.error === 'INCORRECT_PIN') {
         toast.error('Incorrect Transaction PIN. Access Denied.')
@@ -144,8 +206,39 @@ export function NinSlipCenter() {
   // High-DPI PDF generation & download
   const handlePdfDownload = async () => {
     if (!verifiedData) return
-    setDownloading(true)
     
+    // If we have a secure API download ID, fetch the official original PDF from the server
+    if ((verifiedData as any).id) {
+      setDownloading(true)
+      try {
+        toast.loading('Fetching official NIN PDF...', { id: 'download-pdf' })
+        const response = await api.get(`/vtu/nin/download/${(verifiedData as any).id}`, {
+          responseType: 'blob'
+        })
+        
+        const blob = new Blob([response.data], { type: 'application/pdf' })
+        const url = window.URL.createObjectURL(blob)
+        
+        const link = document.createElement('a')
+        link.href = url
+        link.setAttribute('download', `NIN_Slip_${slipType}_${verifiedData.nin}.pdf`)
+        document.body.appendChild(link)
+        link.click()
+        
+        link.parentNode?.removeChild(link)
+        window.URL.revokeObjectURL(url)
+        
+        toast.success('Official PDF downloaded successfully!', { id: 'download-pdf' })
+        return
+      } catch (err) {
+        console.error('Failed to download official PDF, falling back to canvas rendering...', err)
+        toast.error('Could not download official PDF. Rendering fallback card...', { id: 'download-pdf' })
+      } finally {
+        setDownloading(false)
+      }
+    }
+
+    setDownloading(true)
     try {
       if (slipType === 'NIN_PREMIUM') {
         const frontEl = document.getElementById('premium-front')
@@ -1007,6 +1100,123 @@ export function NinSlipCenter() {
         </div>
 
       </div>
+
+      {/* ------------------------------------------------------------- */}
+      {/* NIN VERIFICATION & PRINT HISTORY (PREMIUM PANEL)              */}
+      {/* ------------------------------------------------------------- */}
+      <Card className="p-8 border-brand-royal/10 bg-[#0D1323]/30 backdrop-blur-xl relative overflow-hidden mt-8">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-brand-cyan/5 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-brand-royal/20 border border-brand-royal/30 flex items-center justify-center">
+              <Printer size={20} className="text-brand-cyan" />
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-white uppercase tracking-widest font-display">Verification History</h3>
+              <p className="text-brand-silver/30 text-[10px] uppercase tracking-wider mt-0.5">Instant downloads for previously printed slips (Zero Charge)</p>
+            </div>
+          </div>
+
+          {/* Search bar */}
+          <div className="relative max-w-xs w-full">
+            <input
+              type="text"
+              placeholder="Search by NIN..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value.replace(/\D/g, ''))}
+              className="w-full bg-white/5 border border-brand-royal/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-brand-cyan transition-all pl-9"
+            />
+            <span className="absolute left-3 top-3.5 text-brand-silver/30">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            </span>
+          </div>
+        </div>
+
+        {historyLoading ? (
+          <div className="py-12 flex flex-col items-center justify-center gap-3">
+            <RefreshCw size={24} className="text-brand-cyan animate-spin" />
+            <p className="text-xs text-brand-silver/40 font-black uppercase tracking-widest">Loading history cache...</p>
+          </div>
+        ) : filteredHistory.length === 0 ? (
+          <div className="border border-brand-royal/5 rounded-2xl bg-white/[0.01] py-12 text-center">
+            <p className="text-sm text-brand-silver/35 font-medium">No previous NIN verifications found.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-2xl border border-brand-royal/5">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-white/[0.02] border-b border-brand-royal/5 text-[10px] font-black uppercase tracking-widest text-brand-silver/40">
+                  <th className="py-4 px-6">Date Verified</th>
+                  <th className="py-4 px-6">NIN</th>
+                  <th className="py-4 px-6">Slip Type</th>
+                  <th className="py-4 px-6">Search Mode</th>
+                  <th className="py-4 px-6 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-brand-royal/5 text-xs text-white">
+                {filteredHistory.map((item) => (
+                  <tr key={item.id} className="hover:bg-white/[0.01] transition-all">
+                    <td className="py-4 px-6 text-brand-silver/50 font-medium">
+                      {new Date(item.createdAt).toLocaleString('en-NG', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </td>
+                    <td className="py-4 px-6 font-mono font-bold text-brand-cyan tracking-wider">
+                      {formatNin(item.nin)}
+                    </td>
+                    <td className="py-4 px-6">
+                      {item.slipType === 'premium' && (
+                        <span className="px-2.5 py-1 text-[9px] font-bold rounded-full bg-gradient-to-r from-amber-500/20 to-yellow-500/10 text-brand-gold border border-brand-gold/30 uppercase tracking-widest">
+                          Premium Card
+                        </span>
+                      )}
+                      {item.slipType === 'standard' && (
+                        <span className="px-2.5 py-1 text-[9px] font-bold rounded-full bg-gradient-to-r from-brand-cyan/20 to-brand-royal/10 text-brand-cyan border border-brand-cyan/30 uppercase tracking-widest">
+                          Standard A4
+                        </span>
+                      )}
+                      {item.slipType === 'information' && (
+                        <span className="px-2.5 py-1 text-[9px] font-bold rounded-full bg-white/5 text-brand-silver/60 border border-brand-silver/20 uppercase tracking-widest">
+                          Basic Pocket
+                        </span>
+                      )}
+                      {item.slipType !== 'premium' && item.slipType !== 'standard' && item.slipType !== 'information' && (
+                        <span className="px-2.5 py-1 text-[9px] font-bold rounded-full bg-white/5 text-brand-silver/60 border border-brand-silver/20 uppercase tracking-widest">
+                          {item.slipType}
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-4 px-6 text-brand-silver/40 font-mono text-[10px] uppercase">
+                      {item.searchType}
+                    </td>
+                    <td className="py-4 px-6 text-right">
+                      <Button
+                        size="sm"
+                        onClick={() => downloadCachedSlip(item)}
+                        disabled={downloadingId !== null}
+                        className="h-9 px-4 bg-brand-cyan hover:bg-brand-cyan/90 text-brand-midnight font-bold rounded-xl gap-2 shadow-[0_0_15px_rgba(0,212,255,0.1)] inline-flex items-center"
+                      >
+                        {downloadingId === item.id ? (
+                          <RefreshCw size={12} className="animate-spin" />
+                        ) : (
+                          <Download size={12} />
+                        )}
+                        <span className="text-[10px] uppercase tracking-wider">Download PDF</span>
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
     </div>
   )
 }
