@@ -85,10 +85,11 @@ export const verifyNinSlip = async (req: Request, res: Response) => {
         return res.json({
           success: true,
           message: 'NIN verified successfully (Loaded from Cache)',
-          downloadUrl: `/api/vtu/nin/download/\${cachedVerification.id}`,
+          downloadUrl: `/api/vtu/nin/download/${cachedVerification.id}`,
           data: {
             ...data,
-            downloadUrl: `/api/vtu/nin/download/\${cachedVerification.id}`
+            id: cachedVerification.id,
+            downloadUrl: `/api/vtu/nin/download/${cachedVerification.id}`
           }
         });
       } else {
@@ -264,6 +265,7 @@ export const verifyNinSlip = async (req: Request, res: Response) => {
         downloadUrl: `/api/vtu/nin/download/\${newVerification.id}`,
         data: {
           ...demographicData,
+          id: newVerification.id,
           downloadUrl: `/api/vtu/nin/download/\${newVerification.id}`
         }
       });
